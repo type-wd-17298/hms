@@ -1,0 +1,37 @@
+<?php
+
+namespace app\modules\project\controllers;
+
+use Yii;
+use yii\web\Controller;
+use yii\data\ArrayDataProvider;
+use yii\data\ActiveDataProvider;
+use yii\helpers\Json;
+use yii\web\UploadedFile;
+use app\modules\project\models\ProjectContract;
+use app\modules\project\models\ProjectType;
+
+class ContractController extends Controller {
+
+    public function actionIndex($uid = '') {
+        $pid = Yii::$app->request->get('pid');
+        $model = (!empty($uid) ? ProjectContract::findOne($uid) : new ProjectContract());
+        if (empty($model->project_contract_date))
+            $model->project_contract_date = date('Y-m-d');
+        if ($model->isNewRecord)
+            $model->project_id = $pid;
+
+        if ($this->request->isPost) {
+            if ($model->load($this->request->post()) && $model->save()) {
+                \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
+                return ['status' => 'success'];
+            }
+        } else {
+            $model->loadDefaultValues();
+        }
+        return $this->renderAjax('_form', [
+                    'model' => $model,
+        ]);
+    }
+
+}
