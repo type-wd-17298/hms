@@ -57,11 +57,11 @@ JS;
                     // 'footer' => FALSE,
                     ],
                     'panelTemplate' => '<div class="">
-      {panelBefore}
-      {items}
-      {panelAfter}
-      {panelFooter}
-      </div>',
+                    {panelBefore}
+                    {items}
+                    {panelAfter}
+                    {panelFooter}
+                    </div>',
                     'responsiveWrap' => FALSE,
                     'striped' => FALSE,
                     'hover' => FALSE,
@@ -96,11 +96,14 @@ JS;
                             //'noWrap' => TRUE,
                             'format' => 'raw',
                             'value' => function ($model) {
-                                return Html::a($model->item->item
-                                        , 'javascript:;', [
-                                    'class' => 'btnUpdate1 text-primary',
-                                    'data' => ['id' => $model->survey_list_id]
-                                        ]) . "<br><small>" . nl2br($model->survey_list_problem) . "</small>";
+                                return Html::a(
+                                    $model->item->item,
+                                    'javascript:;',
+                                    [
+                                        'class' => 'btnUpdate text-primary',
+                                        'data' => ['id' => $model->survey_list_id]
+                                    ]
+                                ) . "<br><small>" . nl2br($model->survey_list_problem) . "</small>";
                             }
                         ],
                         [
@@ -153,7 +156,8 @@ JS;
         </div>
     </div>
 </div>
-<div class="modal fade  bg-success-light" id="modalForm"  aria-modal="true" role="dialog">
+
+<div class="modal fade  bg-success-light" id="modalForm" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">

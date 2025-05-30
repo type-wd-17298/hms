@@ -7,19 +7,22 @@ use app\modules\hr\models\Employee;
 use app\modules\hr\models\EmployeeDep;
 use app\components\Ccomponent;
 
-class SurveyComputerList extends \yii\db\ActiveRecord {
+class SurveyComputerList extends \yii\db\ActiveRecord
+{
 
     /**
      * {@inheritdoc}
      */
-    public static function tableName() {
+    public static function tableName()
+    {
         return 'survey_computer_list';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function rules() {
+    public function rules()
+    {
         return [
             [['survey_list_problem', 'survey_list_desc', 'survey_list_compare', 'item_id', 'employee_id', 'survey_list_reuest', 'survey_type'], 'required'],
             [['item_id', 'employee_id', 'survey_budget_year', 'department_id', 'survey_list_reuest', 'survey_list_approve'], 'integer'],
@@ -51,16 +54,18 @@ class SurveyComputerList extends \yii\db\ActiveRecord {
         ];
     }
 
-    public function getDep() {
+    public function getDep()
+    {
         return $this->hasOne(EmployeeDep::className(), ['employee_dep_id' => 'department_id']);
     }
 
-    public function getEmp() {
+    public function getEmp()
+    {
         return $this->hasOne(Employee::className(), ['employee_id' => 'employee_id']);
     }
 
-    public function getItem() {
+    public function getItem()
+    {
         return $this->hasOne(SurveyComputer::className(), ['id' => 'item_id']);
     }
-
 }

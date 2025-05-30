@@ -22,6 +22,15 @@ $('#frm').on('beforeSubmit', function(e) {
     var form = this;
     var data = new FormData(form);
     var url = form.action;
+
+    console.log('Form URL:', url);
+    const obj = {};
+    data.forEach((value, key) => {
+    obj[key] = value;
+    });
+    console.log("FormData Object:", obj);
+    
+
     $.ajax({
         url: url,
         type: 'POST',
@@ -53,20 +62,21 @@ $this->registerJs($js, $this::POS_READY);
 
 <?php
 $form = ActiveForm::begin([
-            'id' => 'frm',
-            'type' => ActiveForm::TYPE_HORIZONTAL,
-            'formConfig' => [
-                'labelSpan' => 12,
-                'showErrors' => false,
-                'showHints' => false,
-                'deviceSize' => ActiveForm::SIZE_X_LARGE],
-            'options' => [
-                'data-pjax' => true,
-                'enctype' => 'multipart/form-data'
-            ],
-                // 'enableClientValidation' => true,
-                //'enableAjaxValidation' => false,
-        ]);
+    'id' => 'frm',
+    'type' => ActiveForm::TYPE_HORIZONTAL,
+    'formConfig' => [
+        'labelSpan' => 12,
+        'showErrors' => false,
+        'showHints' => false,
+        'deviceSize' => ActiveForm::SIZE_X_LARGE
+    ],
+    'options' => [
+        'data-pjax' => true,
+        'enctype' => 'multipart/form-data'
+    ],
+    // 'enableClientValidation' => true,
+    //'enableAjaxValidation' => false,
+]);
 //print_r($form->errorSummary($model));
 ?>
 <div class="row">
@@ -79,7 +89,9 @@ $form = ActiveForm::begin([
                     $budgetYear[$y] = $y;
                 }
                 echo $form->field($model, 'survey_budget_year')->dropDownList(
-                        $budgetYear, ['class' => 'form-control'])
+                    $budgetYear,
+                    ['class' => 'form-control']
+                )
                 ?>
             </div>
 
@@ -87,12 +99,14 @@ $form = ActiveForm::begin([
             <div class="col-md-8">
                 <?php
                 echo $form->field($model, 'item_id')->dropDownList(
-                        ArrayHelper::map(app\modules\survey\models\SurveyComputer::find()
-                                        ->orderBy(['id' => SORT_ASC])
-                                        ->all(), 'id', 'fullname'), [
-                    #'disabled' => $model->isNewRecord ? false : true,
-                    'prompt' => '--เลือกรายการ--',
-                ]);
+                    ArrayHelper::map(app\modules\survey\models\SurveyComputer::find()
+                        ->orderBy(['id' => SORT_ASC])
+                        ->all(), 'id', 'fullname'),
+                    [
+                        #'disabled' => $model->isNewRecord ? false : true,
+                        'prompt' => '--เลือกรายการ--',
+                    ]
+                );
                 ?>
             </div>
             <div class="col-md-4">
@@ -112,8 +126,8 @@ $form = ActiveForm::begin([
             <div class="col-md-4">
                 <?PHP
                 $form->field($model, 'survey_type')->dropDownList(
-                        ['ทดแทน' => 'ทดแทน', 'เพิ่มเติม' => 'เพิ่มเติม'],
-                        ['prompt' => 'เลือกรายการ']
+                    ['ทดแทน' => 'ทดแทน', 'เพิ่มเติม' => 'เพิ่มเติม'],
+                    ['prompt' => 'เลือกรายการ']
                 );
                 ?>
 
@@ -121,7 +135,7 @@ $form = ActiveForm::begin([
                 $form->field($model, 'survey_type')->radioList([
                     'ทดแทน' => 'ทดแทน',
                     'เพิ่มเติม' => 'เพิ่มเติม',
-                        ], ['custom' => true, 'inline' => true])
+                ], ['custom' => true, 'inline' => true])
                 ?>
 
             </div>

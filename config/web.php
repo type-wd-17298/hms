@@ -2,7 +2,11 @@
 
 error_reporting(0);
 $params = require __DIR__ . '/params.php';
-$db = require __DIR__ . '/db.php';
+// $db = require __DIR__ . '/db.php';
+
+$db = file_exists(__DIR__ . '/local_db.php')
+    ? require __DIR__ . '/local_db.php'
+    : require __DIR__ . '/db.php';
 $db_project = require __DIR__ . '/db_project.php';
 $db_myoffice = require __DIR__ . '/db_myoffice.php';
 $db_payroll = require __DIR__ . '/db_payroll.php';
@@ -236,7 +240,7 @@ $config = [
             'targets' => [
                 [
                     'class' => 'yii\log\FileTarget',
-                    'levels' => ['error', 'warning'],
+                    'levels' => ['error', 'warning', 'info'],
                 ],
             ],
         ],

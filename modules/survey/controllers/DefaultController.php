@@ -8,6 +8,7 @@ use yii\data\ArrayDataProvider;
 use app\modules\plan\models\Plan;
 use yii\data\ActiveDataProvider;
 use app\components\Ccomponent;
+use app\modules\survey\models\SurveyComputer;
 use app\modules\survey\models\SurveyComputerList;
 
 class DefaultController extends Controller {
@@ -56,7 +57,7 @@ class DefaultController extends Controller {
         } else {
             $query->andWhere(['department_id' => $emp->employee_dep_id]);
         }
-        $query->andWhere(['survey_budget_year' => 2568]);
+        // $query->andWhere(['survey_budget_year' => 2568]);
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
@@ -69,7 +70,7 @@ class DefaultController extends Controller {
                 ]
             ],
         ]);
-        return $this->render('index', ['model' => @$model, 'dataProvider' => $dataProvider]);
+        return $this->render('index', ['dataProvider' => $dataProvider]); //'model' => @$model,
     }
 
     public function actionCreate() {
