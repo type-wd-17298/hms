@@ -2,9 +2,9 @@
 
 return [
     'class' => 'yii\db\Connection',
-    'dsn' => 'mysql:host=127.0.0.1;dbname=hms_product_db',
-    'username' => 'root',
-    'password' => '',
+    'dsn' => 'mysql:host=192.168.200.9;dbname=hms_product_db',
+    'username' => 'ptaung',
+    'password' => 'QW2267er##',
     'charset' => 'utf8',
     // Schema cache options (for production environment)
     'enableSchemaCache' => true,
