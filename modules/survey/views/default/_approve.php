@@ -13,13 +13,12 @@ $form = ActiveForm::begin([
 $requestedQty = (int) $model->survey_list_reuest;
 
 $js = <<<JS
-$(document).on("click", "#btnApproveSubmit", function(e) {
+$(document).off("click", "#btnApproveSubmit").on("click", "#btnApproveSubmit", function(e) {
     e.preventDefault();
-    $('#approve-form').submit();
+    $("#approve-form").trigger("beforeSubmit");
 });
 
-
-$(document).on('beforeSubmit', '#approve-form', function(e) {
+$(document).off('beforeSubmit', '#approve-form').on('beforeSubmit', '#approve-form', function (e) {
     e.preventDefault();
     const form = this;
     const data = new FormData(form);
