@@ -39,7 +39,7 @@ $this->registerJs($js, $this::POS_READY);
 ?>
 <form id="frmSearch" class="form-inline" data-pjax="true">
     <div class="input-group mr-2">
-        <input type="text" class="form-control" id="inputSearch"  name="search" value="<?= @$_GET['search'] ?>" placeholder="ค้นหารายการ" >
+        <input type="text" class="form-control" id="inputSearch" name="search" value="<?= @$_GET['search'] ?>" placeholder="ค้นหารายการ">
         <?PHP
         /*
           echo DateRangePicker::widget([
@@ -81,18 +81,22 @@ $this->registerJs($js, $this::POS_READY);
          *
          */
         if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin')) {
-            echo Html::dropDownList('dep', $dep, ArrayHelper::map(app\modules\hr\models\EmployeeDep::find()->where(['employee_dep_status' => 1])->joinWith('type')->orderBy(['category_id' => 'ASC'])->asArray()->all(), 'employee_dep_id', 'employee_dep_label', 'type.category_name'),
-                    [
-                        'class' => 'form-control form-control-md ', //d-none d-xl-block
-                        'prompt' => '---เลือกหน่วยงานทั้งหมด---',
-                        'width' => '10',
-            ]);
+            echo Html::dropDownList(
+                'dep',
+                $dep,
+                ArrayHelper::map(app\modules\hr\models\EmployeeDep::find()->where(['employee_dep_status' => 1])->joinWith('type')->orderBy(['category_id' => 'ASC'])->asArray()->all(), 'employee_dep_id', 'employee_dep_label', 'type.category_name'),
+                [
+                    'class' => 'form-control form-control-md ', //d-none d-xl-block
+                    'prompt' => '---เลือกหน่วยงานทั้งหมด---',
+                    'width' => '10',
+                ]
+            );
         }
         ?>
         <div class="input-group-append">
             <?= Html::submitButton('<i class="fa-solid fa-magnifying-glass"></i> แสดงข้อมูล', ['class' => 'form-control btn btn-dark btnSubmit1']) ?>
             <?PHP
-            #echo Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'form-control btn btn-primary btnCreate font-weight-bold']);
+            echo Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'form-control btn btn-primary btnCreate font-weight-bold']);
             ?>
         </div>
     </div>

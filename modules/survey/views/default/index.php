@@ -11,6 +11,7 @@ use app\components\Cdata;
 $mode = '';
 $url = Url::to(['create']);
 $url2 = Url::to(['update']);
+$urlApprove = Url::to(['approve']);
 
 $css = '.modal-xl {max-width: 80% !important;}  .blink {  animation: blink-animation 2s steps(5, start) infinite; -webkit-animation: blink-animation 2s steps(5, start) infinite; }';
 $this->registerCss($css);
@@ -31,6 +32,21 @@ $(".btnUpdate").click(function(event){
            $("#modalContents").html(data);
        });
 });
+
+$(document).on("click", ".btnApprove", function (event) {
+  $("#modalContents").html('');
+  $('#modalForm').modal('show');
+  let id = $(this).data("id");
+  console.log("id :",id);
+  
+  $.get("{$urlApprove}", { id: id }, function (data) {
+    $("#modalContents").html(data);
+  }).fail(function () {
+    console.log("id :",id);
+    console.error("โหลดเนื้อหาล้มเหลว");
+  });
+});
+
 JS;
 ?>
 
@@ -54,7 +70,7 @@ JS;
                         'type' => '',
                         'heading' => '',
                         'before' => $this->render('_search', ['model' => $dataProvider]),
-                    // 'footer' => FALSE,
+                        // 'footer' => FALSE,
                     ],
                     'panelTemplate' => '<div class="">
                     {panelBefore}
@@ -88,6 +104,34 @@ JS;
                             'class' => 'kartik\grid\SerialColumn',
                             'vAlign' => 'top',
                         ],
+                        [
+                            'label' => 'สถานะ',
+                            'headerOptions' => ['class' => 'font-weight-bold small text-center'],
+                            'contentOptions' => ['class' => 'small text-center'],
+                            'vAlign' => 'top',
+                            'format' => 'raw',
+                            'value' => function ($model) {
+                                $itComment = trim($model->it_comment);
+                                $approve = $model->survey_list_approve;
+
+                                if ($itComment === '') {
+                                    return '<span class="badge bg-warning text-dark">รอความคิดเห็น IT</span>';
+                                }
+
+                                if ($approve === null || $approve === '') {
+                                    return '<span class="badge text-white" style="background-color: #0d6efd;">รออนุมัติ</span>';
+                                }
+
+
+                                if ((int)$approve === 0) {
+                                    return '<span class="badge bg-danger">ไม่อนุมัติ</span>';
+                                }
+
+                                return '<span class="badge bg-success">อนุมัติแล้ว</span>';
+                            }
+
+                        ],
+
                         [
                             'attribute' => 'item_id',
                             'headerOptions' => ['class' => 'font-weight-bold small'],
@@ -136,6 +180,13 @@ JS;
                             'format' => 'raw',
                         ],
                         [
+                            'attribute' => 'it_comment',
+                            'headerOptions' => ['class' => 'font-weight-bold small'],
+                            'contentOptions' => ['class' => 'small'],
+                            'vAlign' => 'top',
+                            'format' => 'raw',
+                        ],
+                        [
                             'attribute' => 'employee_id',
                             'headerOptions' => ['class' => 'font-weight-bold small'],
                             'contentOptions' => ['class' => 'small'],
@@ -146,6 +197,28 @@ JS;
                                 return $model->emp->employee_fullname;
                             }
                         ],
+                        [
+                            'class' => 'kartik\grid\ActionColumn',
+                            'template' => '{approve}',
+                            'header' => 'ดำเนินการ',
+                            'headerOptions' => ['class' => 'font-weight-bold small text-center'],
+                            'contentOptions' => ['class' => 'text-center'],
+                            'visible' => Yii::$app->user->can('SuperAdmin') || Yii::$app->user->can('SurveyApprove'),
+                            'buttons' => [
+                                'approve' => function ($url, $model, $key) {
+                                    $disabled = (trim($model->it_comment) === '') ? true : false;
+                                    return Html::button('อนุมัติ', [
+                                        'class' => 'btnApprove btn btn-sm btn-success',
+                                        'data-id' => $model->survey_list_id,
+                                        'disabled' => $disabled,
+                                        'title' => $disabled ? 'ต้องมีความคิดเห็น IT ก่อนอนุมัติ' : null,
+                                    ]);
+                                },
+
+                            ],
+                        ],
+
+
                     ],
                 ]);
                 ?>
@@ -165,7 +238,7 @@ JS;
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body1">
-                <div id="modalContents" class="m-4"></div>
+                <div id="modalContents" class=""></div>
             </div>
             <div class="modal-footer d-none">
                 <button type="button" class="btn btn-danger light" data-bs-dismiss="modal">Close</button>

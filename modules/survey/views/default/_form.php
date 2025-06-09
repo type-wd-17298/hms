@@ -56,6 +56,24 @@ $('#frm').on('beforeSubmit', function(e) {
     e.preventDefault();
     return false;
 });
+
+
+function togglePartnumberField() {
+    let selected = $('input[name$="[survey_type]"]:checked').val();
+    if (selected === 'ทดแทน') {
+        $('#partnumber-field').show();
+    } else {
+        $('#partnumber-field').hide();
+    }
+}
+
+togglePartnumberField();
+
+$(document).on('change', 'input[name$="[survey_type]"]', function () {
+    togglePartnumberField();
+});
+
+
 JS;
 $this->registerJs($js, $this::POS_READY);
 ?>
@@ -79,7 +97,7 @@ $form = ActiveForm::begin([
 ]);
 //print_r($form->errorSummary($model));
 ?>
-<div class="row">
+<div class="row m-2">
     <div class="col-md-12">
         <div class="row">
             <div class="col-md-12">
@@ -125,39 +143,59 @@ $form = ActiveForm::begin([
             </div>
             <div class="col-md-4">
                 <?PHP
-                $form->field($model, 'survey_type')->dropDownList(
-                    ['ทดแทน' => 'ทดแทน', 'เพิ่มเติม' => 'เพิ่มเติม'],
-                    ['prompt' => 'เลือกรายการ']
-                );
+                // $form->field($model, 'survey_type')->dropDownList(
+                //     ['ทดแทน' => 'ทดแทน', 'เพิ่มเติม' => 'เพิ่มเติม'],
+                //     ['prompt' => 'เลือกรายการ']
+                // );
+                // 
                 ?>
 
-                <?=
-                $form->field($model, 'survey_type')->radioList([
-                    'ทดแทน' => 'ทดแทน',
-                    'เพิ่มเติม' => 'เพิ่มเติม',
-                ], ['custom' => true, 'inline' => true])
-                ?>
+                <div class="col-md-4">
+                    <?= $form->field($model, 'survey_type')->radioList([
+                        'ทดแทน' => 'ทดแทน',
+                        'เพิ่มเติม' => 'เพิ่มเติม',
+                    ], ['inline' => true]) ?>
+                </div>
+
 
             </div>
+
             <div class="col-md-8">
-                <?= $form->field($model, 'survey_list_partnumber')->textInput() ?>
+                <div id="partnumber-field" style="display: none;">
+                    <?= $form->field($model, 'survey_list_partnumber')->textInput() ?>
+                </div>
             </div>
-            <div class="col-md-12">
+
+
+
+            <div class="col-md-6">
                 <?= $form->field($model, 'survey_list_comment')->textarea(['rows' => 4, 'class' => 'form-control form-control-sm']) ?>
             </div>
+            <?php if (Yii::$app->user->can('SuperAdmin') || Yii::$app->user->can('ITAdmin')): ?>
+                <div class="col-md-6">
+                    <?= $form->field($model, 'it_comment')->textarea(['rows' => 4, 'class' => 'form-control form-control-sm']) ?>
+                </div>
+            <?php endif; ?>
+            
+        </div>
+        <div class="col-md-12">
+            <div class="row justify-content-between mt-3 mb-5">
+                <div class="col-6">
+                    <?= Html::a('<i class="fa fa-angle-left fa-lg"></i> กลับหน้าจัดการ', 'javascript:;', ['class' => 'btn btn-dark btn-lg font-weight-bold', 'data-bs-dismiss' => 'modal']) ?>
+                </div>
+                <div class="col-6 text-right">
+                    <?php if ($mode === 'approve'): ?>
+                        <?= Html::button('<i class="fas fa-check"></i> อนุมัติ', ['class' => 'btn btn-success btn-lg font-weight-bold', 'id' => 'btnApprove']) ?>
+                        <?= Html::button('<i class="fas fa-times"></i> ไม่อนุมัติ', ['class' => 'btn btn-danger btn-lg font-weight-bold', 'id' => 'btnReject']) ?>
+                    <?php else: ?>
+                        <?= Html::button('<i class="fa fa-save fa-lg"></i> บันทึกข้อมูล', ['class' => 'btn btn-primary btn-lg font-weight-bold', 'id' => 'btnFrmOffice']) ?>
+                        <?= Html::button('<i class="fa fa-delete fa-lg"></i> ลบข้อมูล', ['class' => 'btn btn-danger btn-lg font-weight-bold', 'id' => 'btnFrmDelete']) ?>
+                    <?php endif; ?>
+
+
+                </div>
+            </div>
+            <hr>
         </div>
     </div>
-    <div class="col-md-12">
-        <div class="row justify-content-between mt-3 mb-5">
-            <div class="col-6">
-                <?= Html::a('<i class="fa fa-angle-left fa-lg"></i> กลับหน้าจัดการ', 'javascript:;', ['class' => 'btn btn-dark btn-lg font-weight-bold', 'data-bs-dismiss' => 'modal']) ?>
-            </div>
-            <div class="col-6 text-right">
-                <?= Html::button('<i class="fa fa-save fa-lg"></i> บันทึกข้อมูล', ['class' => 'btn btn-primary btn-lg font-weight-bold', 'id' => 'btnFrmOffice',]) ?>
-                <?= Html::button('<i class="fa fa-delete fa-lg"></i> ลบข้อมูล', ['class' => 'btn btn-danger btn-lg font-weight-bold', 'id' => 'btnFrmDelete',]) ?>
-            </div>
-        </div>
-        <hr>
-    </div>
-</div>
-<?php ActiveForm::end(); ?>
+    <?php ActiveForm::end(); ?>

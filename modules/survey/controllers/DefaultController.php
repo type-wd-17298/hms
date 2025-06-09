@@ -10,19 +10,22 @@ use yii\data\ActiveDataProvider;
 use app\components\Ccomponent;
 use app\modules\survey\models\SurveyComputer;
 use app\modules\survey\models\SurveyComputerList;
+use yii\web\NotFoundHttpException;
 
-class DefaultController extends Controller {
+class DefaultController extends Controller
+{
 
-    public function actionImport() {
+    public function actionImport()
+    {
 
         $url = "https://data.go.th/api/3/action/datastore_search?resource_id=36b9715f-d434-4833-a4f6-b2984cbca590&limit=100";
         $ch = curl_init();
-// Set the URL
+        // Set the URL
         curl_setopt($ch, CURLOPT_URL, $url);
-// Set the cURL options
+        // Set the cURL options
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-// Execute the cURL session
+        // Execute the cURL session
         $response = curl_exec($ch);
         curl_close($ch);
         // Decode the JSON data to PHP array
@@ -44,7 +47,8 @@ class DefaultController extends Controller {
         }
     }
 
-    public function actionIndex() {
+    public function actionIndex()
+    {
         $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
         //$model = new Plan();
         @$params = \Yii::$app->request->queryParams;
@@ -52,12 +56,12 @@ class DefaultController extends Controller {
         $query = SurveyComputerList::find();
 
         if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')) {
-			//$query->andWhere(['department_id' => $emp->employee_dep_id]);
-			
+            //$query->andWhere(['department_id' => $emp->employee_dep_id]);
+
         } else {
             $query->andWhere(['department_id' => $emp->employee_dep_id]);
         }
-        // $query->andWhere(['survey_budget_year' => 2568]);
+        $query->andWhere(['survey_budget_year' => 2569]);
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
@@ -73,14 +77,14 @@ class DefaultController extends Controller {
         return $this->render('index', ['dataProvider' => $dataProvider]); //'model' => @$model,
     }
 
-    public function actionCreate() {
+    public function actionCreate()
+    {
         $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
         $model = new SurveyComputerList();
         $model->employee_id = $emp->employee_id;
         $model->department_id = $emp->employee_dep_id;
         if ($this->request->isPost) {
             if ($model->load($this->request->post()) && $model->save()) {
-
             }
         } else {
             $model->loadDefaultValues();
@@ -89,14 +93,33 @@ class DefaultController extends Controller {
         //return $this->render('create', ['model' => @$model, 'dataProvider' => $dataProvider]);
     }
 
-    public function actionUpdate($id) {
+    public function actionUpdate($id)
+    {
         $model = SurveyComputerList::findOne($id);
         if ($this->request->isPost) {
             if ($model->load($this->request->post()) && $model->save()) {
-
             }
         }
         return $this->renderAjax('_form', ['model' => $model]);
     }
 
+    public function actionApprove($id)
+    {
+        $model = SurveyComputerList::findOne($id);
+
+        if (Yii::$app->request->isPost && $model->load(Yii::$app->request->post())) {
+            $model->survey_list_approve_date = date('Y-m-d H:i:s');
+            if ($model->save()) {
+                return 'success';
+            } else {
+                Yii::error($model->errors, __METHOD__); // เขียนลง log
+                return json_encode(['status' => 'error', 'errors' => $model->errors]); // ชั่วคราวเพื่อ debug
+            }
+        }
+
+        return $this->renderAjax('_approve', [
+            'model' => $model,
+            'mode' => 'approve',
+        ]);
+    }
 }
