@@ -37,12 +37,10 @@ $(document).on("click", ".btnApprove", function (event) {
   $("#modalContents").html('');
   $('#modalForm').modal('show');
   let id = $(this).data("id");
-  console.log("id :",id);
   
   $.get("{$urlApprove}", { id: id }, function (data) {
     $("#modalContents").html(data);
   }).fail(function () {
-    console.log("id :",id);
     console.error("โหลดเนื้อหาล้มเหลว");
   });
 });
