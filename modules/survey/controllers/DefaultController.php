@@ -109,11 +109,15 @@ class DefaultController extends Controller
 
         if (Yii::$app->request->isPost && $model->load(Yii::$app->request->post())) {
             $model->survey_list_approve_date = date('Y-m-d H:i:s');
+
+            $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
+            $model->approver_employee_id = $emp->employee_id;
+
             if ($model->save()) {
                 return 'success';
             } else {
-                Yii::error($model->errors, __METHOD__); // เขียนลง log
-                return json_encode(['status' => 'error', 'errors' => $model->errors]); // ชั่วคราวเพื่อ debug
+                Yii::error($model->errors, __METHOD__); 
+                return json_encode(['status' => 'error', 'errors' => $model->errors]);
             }
         }
 
@@ -121,5 +125,13 @@ class DefaultController extends Controller
             'model' => $model,
             'mode' => 'approve',
         ]);
+    }
+
+    public function actionDashboard()
+    {
+        if (Yii::$app->request->isAjax) {
+            return $this->renderPartial('dashboard');
+        }
+        return $this->render('dashboard');
     }
 }

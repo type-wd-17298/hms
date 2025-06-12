@@ -38,9 +38,10 @@ JS;
 $this->registerJs($js, $this::POS_READY);
 ?>
 <form id="frmSearch" class="form-inline" data-pjax="true">
-    <div class="input-group mr-2">
+    <div class="input-group w-100">
         <input type="text" class="form-control" id="inputSearch" name="search" value="<?= @$_GET['search'] ?>" placeholder="ค้นหารายการ">
-        <?PHP
+
+        <?php
         /*
           echo DateRangePicker::widget([
           'id' => 'search_date',
@@ -86,18 +87,65 @@ $this->registerJs($js, $this::POS_READY);
                 $dep,
                 ArrayHelper::map(app\modules\hr\models\EmployeeDep::find()->where(['employee_dep_status' => 1])->joinWith('type')->orderBy(['category_id' => 'ASC'])->asArray()->all(), 'employee_dep_id', 'employee_dep_label', 'type.category_name'),
                 [
-                    'class' => 'form-control form-control-md ', //d-none d-xl-block
+                    'class' => 'form-control form-control-md',
                     'prompt' => '---เลือกหน่วยงานทั้งหมด---',
-                    'width' => '10',
+                    'style' => 'max-width: 400px;',
                 ]
             );
         }
         ?>
-        <div class="input-group-append">
-            <?= Html::submitButton('<i class="fa-solid fa-magnifying-glass"></i> แสดงข้อมูล', ['class' => 'form-control btn btn-dark btnSubmit1']) ?>
-            <?PHP
-            echo Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'form-control btn btn-primary btnCreate font-weight-bold']);
+
+        <div class="input-group-append btn-group" role="group">
+
+            <?= Html::submitButton('<i class="fa-solid fa-magnifying-glass"></i> แสดงข้อมูล', ['class' => 'btn btn-dark btnSubmit1']) ?>
+
+            <?= Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'btn btn-primary btnCreate font-weight-bold']) ?>
+
+            <?= Html::button(
+                '<i class="fa-solid fa-gauge-high"></i> Dashboard',
+                [
+                    'class' => 'btn text-white font-weight-bold',
+                    'style' => 'background-color: #fd7e14; border-color: #fd7e14;',
+                    'id' => 'btnDashboard',
+                    'type' => 'button',
+                ]
+            ) ?>
+            <?php
+            $dashboardUrl = \yii\helpers\Url::to(['default/dashboard']);
+            $js = <<<JS
+    document.getElementById('btnDashboard').addEventListener('click', function() {
+        window.location.href = '{$dashboardUrl}';
+    });
+JS;
+            $this->registerJs($js);
             ?>
+
+
+            <div class="btn-group" role="group">
+                <?= Html::button('<i class="fa-solid fa-chart-column"></i> รายงาน', [
+                    'class' => 'btn btn-info dropdown-toggle font-weight-bold',
+                    'style' => 'background-color: #17a2b8; border-color: #17a2b8;',
+                    'type' => 'button',
+                    'data-bs-toggle' => 'dropdown',
+                    'aria-expanded' => 'false',
+                ]) ?>
+                <ul class="dropdown-menu">
+                    <li><?= Html::a('<i class="fa-regular fa-file-lines"></i> รายงานสรุป', ['report/summary'], ['class' => 'dropdown-item']) ?></li>
+                    <li><?= Html::a('<i class="fa-solid fa-building"></i> รายงานขอคอมพิวเตอร์', ['report/department'], ['class' => 'dropdown-item']) ?></li>
+                    <li>
+                        <?= \yii\helpers\Html::a(
+                            '<i class="fa-solid fa-file-excel"></i> รายงานทั้งหมด',
+                            ['export/export-excel'],
+                            [
+                                'class' => 'dropdown-item',
+                                'data-pjax' => '0'
+                            ]
+                        ) ?>
+                    </li>
+
+                </ul>
+            </div>
+
         </div>
     </div>
 </form>
