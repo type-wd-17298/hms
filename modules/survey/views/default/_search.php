@@ -121,30 +121,33 @@ JS;
             ?>
 
 
-            <div class="btn-group" role="group">
-                <?= Html::button('<i class="fa-solid fa-chart-column"></i> รายงาน', [
-                    'class' => 'btn btn-info dropdown-toggle font-weight-bold',
-                    'style' => 'background-color: #17a2b8; border-color: #17a2b8;',
-                    'type' => 'button',
-                    'data-bs-toggle' => 'dropdown',
-                    'aria-expanded' => 'false',
-                ]) ?>
-                <ul class="dropdown-menu">
-                    <li><?= Html::a('<i class="fa-regular fa-file-lines"></i> รายงานสรุป', ['report/summary'], ['class' => 'dropdown-item']) ?></li>
-                    <li><?= Html::a('<i class="fa-solid fa-building"></i> รายงานขอคอมพิวเตอร์', ['report/department'], ['class' => 'dropdown-item']) ?></li>
-                    <li>
-                        <?= \yii\helpers\Html::a(
-                            '<i class="fa-solid fa-file-excel"></i> รายงานทั้งหมด',
-                            ['export/export-excel'],
-                            [
-                                'class' => 'dropdown-item',
-                                'data-pjax' => '0'
-                            ]
-                        ) ?>
-                    </li>
-
-                </ul>
-            </div>
+            <?php if (
+                \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')
+            ): ?>
+                <div class="btn-group" role="group">
+                    <?= Html::button('<i class="fa-solid fa-chart-column"></i> รายงาน', [
+                        'class' => 'btn btn-info dropdown-toggle font-weight-bold',
+                        'style' => 'background-color: #17a2b8; border-color: #17a2b8;',
+                        'type' => 'button',
+                        'data-bs-toggle' => 'dropdown',
+                        'aria-expanded' => 'false',
+                    ]) ?>
+                    <ul class="dropdown-menu">
+                        <li><?= Html::a('<i class="fa-regular fa-file-lines"></i> รายงานสรุป', ['report/summary'], ['class' => 'dropdown-item']) ?></li>
+                        <li><?= Html::a('<i class="fa-solid fa-building"></i> รายงานขอคอมพิวเตอร์', ['report/department'], ['class' => 'dropdown-item']) ?></li>
+                        <li>
+                            <?= Html::a(
+                                '<i class="fa-solid fa-file-excel"></i> รายงานทั้งหมด',
+                                ['export/export-excel'],
+                                [
+                                    'class' => 'dropdown-item',
+                                    'data-pjax' => '0'
+                                ]
+                            ) ?>
+                        </li>
+                    </ul>
+                </div>
+            <?php endif; ?>
 
         </div>
     </div>

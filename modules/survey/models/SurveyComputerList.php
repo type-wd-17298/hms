@@ -25,15 +25,16 @@ class SurveyComputerList extends \yii\db\ActiveRecord
     {
         return [
             [['survey_list_problem', 'survey_list_desc', 'survey_list_compare', 'item_id', 'employee_id', 'survey_list_reuest', 'survey_type'], 'required'],
-            [['item_id', 'employee_id', 'survey_budget_year', 'department_id', 'survey_list_reuest', 'survey_list_approve'], 'integer'],
+            [['item_id', 'employee_id', 'survey_budget_year', 'department_id', 'survey_list_reuest', 'survey_list_approve', 'sub_department_id'], 'integer'],
             [['create_at', 'update_at', 'survey_list_approve_date'], 'safe'],
-            [['survey_list_comment', 'approver_comments','it_comment'], 'string'],
+            [['survey_list_comment', 'approver_comments', 'it_comment'], 'string'],
             [['survey_list_problem', 'survey_list_desc', 'survey_list_compare', 'survey_list_partnumber', 'survey_type'], 'string', 'max' => 255],
-            [['survey_list_partnumber'], 'string', 'max' => 50],
+            [['survey_list_partnumber'], 'string', 'max' => 255],
         ];
     }
 
-    public function attributeLabels() {
+    public function attributeLabels()
+    {
         return [
             'survey_list_id' => 'Survey List ID',
             'item_id' => 'รายการครุภัณฑ์คอมพิวเตอร์',
@@ -43,6 +44,7 @@ class SurveyComputerList extends \yii\db\ActiveRecord
             'survey_budget_year' => 'ปีงบประมาณ',
             'it_comment' => 'ความคิดเห็น IT',
             'department_id' => 'หน่วยงาน',
+            'sub_department_id' => 'หน่วยงานที่ติดตั้ง',
             'survey_list_reuest' => 'จำนวนที่ต้องการ',
             'survey_list_approve' => 'จำนวนที่อนุมัติ',
             'survey_list_approve_date' => 'วันที่อนุมัติ',
@@ -59,6 +61,11 @@ class SurveyComputerList extends \yii\db\ActiveRecord
     public function getDep()
     {
         return $this->hasOne(EmployeeDep::className(), ['employee_dep_id' => 'department_id']);
+    }
+
+    public function getSubdep()
+    {
+        return $this->hasOne(EmployeeSubDept::className(), ['employee_subDept_id' => 'sub_department_id']);
     }
 
     public function getEmp()

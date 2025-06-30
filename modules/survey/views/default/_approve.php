@@ -66,9 +66,14 @@ $this->registerJs($js, \yii\web\View::POS_READY);
       <span id="fiscalYear"><?= Html::encode($model->survey_budget_year) ?></span>
     </div>
 
-    <div class="col-md-8">
+    <div class="col-md-4">
       <strong>หน่วยงาน:</strong>
       <span id="department"> <?= Html::encode($model->dep->employee_dep_label) ?> </span>
+    </div>
+
+    <div class="col-md-4">
+      <strong>หน่วยงานที่ติดตั้ง:</strong>
+      <span id="department"> <?= Html::encode($model->subdep->employee_subDept_label) ?> </span>
     </div>
 
     <div class="col-md-12">

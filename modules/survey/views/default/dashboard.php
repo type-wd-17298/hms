@@ -35,17 +35,35 @@ $countPending = 0;
 foreach ($allModels as $model) {
     $depLabel = $model->dep->employee_dep_label ?? '-';
     $itemName = $model->item->item ?? '-';
-    $requestQty = $model->survey_list_reuest;
-    $approveQty = $model->survey_list_approve;
+    $requestQty = $model->survey_list_reuest ?? 0;
+    $approveQty = $model->survey_list_approve ?? 0;
     $unitPrice = $model->item->price ?? 0;
     $itComment = $model->it_comment;
+
+    $requestAmount = $requestQty * $unitPrice;
+    $approveAmount = $approveQty * $unitPrice;
+
+    $totalRequestQty += $requestQty;
+    $totalApproveQty += $approveQty;
+    $totalRequestAmount += $requestAmount;
+    $totalApproveAmount += $approveAmount;
 
     if ($requestQty > 0) {
         $countAllRequests++;
         $totalRequested += $requestQty;
 
         $byDepartment[$depLabel] = ($byDepartment[$depLabel] ?? 0) + $requestQty;
-        $byItem[$itemName] = ($byItem[$itemName] ?? 0) + $requestQty;
+
+        if (!isset($byItem[$itemName])) {
+            $byItem[$itemName] = [
+                'price' => $unitPrice,
+                'qty' => 0,
+                'approve' => 0,
+            ];
+        }
+
+        $byItem[$itemName]['qty'] += $requestQty;
+        $byItem[$itemName]['approve'] += $approveQty;
     }
 
     if ($approveQty !== null && $approveQty != 0) {
@@ -58,36 +76,68 @@ foreach ($allModels as $model) {
     }
 }
 
+
 arsort($byDepartment);
 $topDepartments = array_slice($byDepartment, 0, 10, true);
 
-$depLabels = json_encode(array_keys($topDepartments), JSON_UNESCAPED_UNICODE);
-$depValues = json_encode(array_values($topDepartments));
+$colors = [
+    'rgba(255, 99, 132, 0.7)',
+    'rgba(54, 162, 235, 0.7)',
+    'rgba(255, 206, 86, 0.7)',
+    'rgba(75, 192, 192, 0.7)',
+    'rgba(153, 102, 255, 0.7)',
+    'rgba(255, 159, 64, 0.7)'
+];
+
+$borderColors = array_map(function ($c) {
+    return str_replace('0.7', '1', $c);
+}, $colors);
+
+$this->registerJsVar('depLabels', array_keys($topDepartments));
+$this->registerJsVar('depValues', array_values($topDepartments));
+$this->registerJsVar('bgColors', array_slice($colors, 0, count($topDepartments)));
+$this->registerJsVar('bdColors', array_slice($borderColors, 0, count($topDepartments)));
 
 $this->registerJs("
     var ctx = document.getElementById('depBarChart').getContext('2d');
     new Chart(ctx, {
-        type: 'bar',
+        type: 'doughnut',
         data: {
-            labels: $depLabels,
+            labels: depLabels,
             datasets: [{
                 label: 'จำนวนร้องขอ',
-                data: $depValues,
-                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
+                data: depValues,
+                backgroundColor: bgColors,
+                borderColor: bdColors,
+                borderWidth: 1,
+                hoverOffset: 10
             }]
         },
         options: {
             responsive: true,
             plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { precision: 0 }
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        color: '#333',
+                        font: {
+                            size: 14,
+                            family: 'Kanit, Segoe UI, Tahoma, sans-serif'
+                        },
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#333',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#ccc',
+                    borderWidth: 1
                 }
+            },
+            layout: {
+                padding: 10
             }
         }
     });
@@ -135,7 +185,29 @@ $this->registerCss(<<<CSS
 }
 .custom-card-hover:hover {
     transform: scale(1.05);
-    background-color: #e1e5f5; 
+    background-color: #EBEBEB;
+    /* transition: all 0.3s ease-in-out;  */
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+}
+.custom-card-hover.hover-approve:hover {
+    background-color: #d4edda;
+    transform: scale(1.03);
+}
+
+.custom-card-hover.hover-pending:hover {
+    background-color:rgb(252, 243, 214); 
+    transform: scale(1.03);
+}
+
+.custom-card-hover.hover-reject:hover {
+    background-color: #f8d7da; 
+    transform: scale(1.03);
+}
+
+.custom-card-hover.hover-all:hover {
+    background-color: #e2e3e5; 
+    transform: scale(1.03);
 }
 CSS);
 ?>
@@ -144,7 +216,7 @@ CSS);
 <div class="site-dashboard mt-4">
     <div class="row">
         <div class="col-xl-3 col-xxl-3 col-lg-6 col-sm-6">
-            <div class="widget-stat card shadow-sm custom-card-hover">
+            <div class="widget-stat card shadow-sm custom-card-hover hover-all">
                 <div class="card-body m-2">
                     <div class="media ai-icon">
                         <span class="me-3 bgl-primary text-primary">
@@ -160,7 +232,8 @@ CSS);
         </div>
 
         <div class="col-xl-3 col-xxl-3 col-lg-6 col-sm-6">
-            <div class="widget-stat card shadow-sm custom-card-hover">
+            <div class="widget-stat card shadow-sm custom-card-hover hover-approve">
+
                 <div class="card-body m-2">
                     <div class="media ai-icon">
                         <span class="me-3 bgl-success text-success">
@@ -176,7 +249,8 @@ CSS);
         </div>
 
         <div class="col-xl-3 col-xxl-3 col-lg-6 col-sm-6">
-            <div class="widget-stat card shadow-sm custom-card-hover">
+            <div class="widget-stat card shadow-sm custom-card-hover hover-pending">
+
                 <div class="card-body m-2">
                     <div class="media ai-icon">
                         <span class="me-3 bgl-warning text-warning">
@@ -192,7 +266,7 @@ CSS);
         </div>
 
         <div class="col-xl-3 col-xxl-3 col-lg-6 col-sm-6">
-            <div class="widget-stat card shadow-sm custom-card-hover">
+            <div class="widget-stat card shadow-sm custom-card-hover hover-reject">
                 <div class="card-body m-2">
                     <div class="media ai-icon">
                         <span class="me-3 bgl-danger text-danger">
@@ -208,29 +282,64 @@ CSS);
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <h3>สรุปตามหน่วยงาน</h3>
-            <canvas id="depBarChart" width="200" height="150"></canvas>
+    <div class="row">
+        <div class="mt-4 col-md-4 d-flex flex-column justify-content-between" style="height: 100%;">
+            <div class="card flex-fill mb-4" style="min-height: 550px;">
+                <div class="card-body d-flex flex-column">
+                    <h3 class="text-center mb-3">สรุปตามหน่วยงาน</h3>
+                    <canvas id="depBarChart" class="flex-fill" style="max-height: 100%;"></canvas>
+                </div>
+            </div>
+
+            <div class="card flex-fill" style="min-height: 550px;">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h3 class="text-center mb-3">xxxxxxxxx</h3>
+                    <p class="text-center text-muted">เนื้อหาหรือรายงานอื่น ๆ</p>
+                </div>
+            </div>
         </div>
-        <div class="col-md-6 mt-3">
-            <h3>สรุปตามรายการครุภัณฑ์</h3>
-            <table class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>รายการ</th>
-                        <th>จำนวนร้องขอ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($byItem as $item => $qty): ?>
-                        <tr>
-                            <td><?= Html::encode($item) ?></td>
-                            <td class="text-right"><?= number_format($qty) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+
+
+        <div class="col-md-8">
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h3>สรุปตามรายการครุภัณฑ์</h3>
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>รายการ</th>
+                                <th>ราคากลาง</th>
+                                <th>จำนวนร้องขอ</th>
+                                <th>จำนวนที่อนุมัติ</th>
+                                <th>มูลค่ารวม</th>
+                                <th>มูลค่าอนุมัติรวม</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($byItem as $item => $data): ?>
+                                <tr>
+                                    <td><?= Html::encode($item) ?></td>
+                                    <td class="text-end"><?= number_format($data['price'], 2) ?></td>
+                                    <td class="text-end"><?= number_format($data['qty']) ?></td>
+                                    <td class="text-end"><?= number_format($data['approve']) ?></td>
+                                    <td class="text-end"><?= number_format($data['qty'] * $data['price'], 2) ?></td>
+                                    <td class="text-end"><?= number_format($data['approve'] * $data['price'], 2) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary font-weight-bold">
+                                <td class="text-end">รวมทั้งหมด</td>
+                                <td></td>
+                                <td class="text-end"><?= number_format($totalRequestQty) ?></td>
+                                <td class="text-end"><?= number_format($totalApproveQty) ?></td>
+                                <td class="text-end"><?= number_format($totalRequestAmount, 2) ?></td>
+                                <td class="text-end"><?= number_format($totalApproveAmount, 2) ?></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

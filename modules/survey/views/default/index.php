@@ -7,6 +7,9 @@ use yii\helpers\Url;
 use yii\widgets\Pjax;
 use miloschuman\highcharts\Highcharts;
 use app\components\Cdata;
+use kartik\select2\Select2;
+use yii\jui\AutoComplete;
+use yii\web\JsExpression;
 
 $mode = '';
 $url = Url::to(['create']);
@@ -75,11 +78,11 @@ JS;
                             // 'footer' => FALSE,
                         ],
                         'panelTemplate' => '<div class="">
-                {panelBefore}
-                {items}
-                {panelAfter}
-                {panelFooter}
-            </div>',
+                                                {panelBefore}
+                                                {items}
+                                                {panelAfter}
+                                                {panelFooter}
+                                            </div>',
                         'responsiveWrap' => false,
                         'striped' => false,
                         'hover' => false,
@@ -115,8 +118,9 @@ JS;
                                 'value' => function ($model) {
                                     $itComment = trim($model->it_comment);
                                     $approve = $model->survey_list_approve;
+                                    $surveyType = trim($model->survey_type);
 
-                                    if ($itComment === '') {
+                                    if ($surveyType === 'ทดแทน' && $itComment === '') {
                                         return '<span class="badge bg-warning text-dark">รอความคิดเห็น IT</span>';
                                     }
 
@@ -130,6 +134,7 @@ JS;
 
                                     return '<span class="badge bg-success">อนุมัติแล้ว</span>';
                                 }
+
 
                             ],
                             [
@@ -206,7 +211,9 @@ JS;
                                 'visible' => Yii::$app->user->can('SuperAdmin') || Yii::$app->user->can('SurveyApprove'),
                                 'buttons' => [
                                     'approve' => function ($url, $model, $key) {
-                                        $disabled = (trim($model->it_comment) === '') ? true : false;
+                                        $requiresComment = ($model->survey_type === 'ทดแทน');
+                                        $disabled = ($requiresComment && trim($model->it_comment) === '');
+
                                         return Html::button('อนุมัติ', [
                                             'class' => 'btnApprove btn btn-sm btn-success',
                                             'data-id' => $model->survey_list_id,
@@ -214,6 +221,7 @@ JS;
                                             'title' => $disabled ? 'ต้องมีความคิดเห็น IT ก่อนอนุมัติ' : null,
                                         ]);
                                     },
+
                                 ],
                             ],
                         ],

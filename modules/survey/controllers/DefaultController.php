@@ -8,8 +8,10 @@ use yii\data\ArrayDataProvider;
 use app\modules\plan\models\Plan;
 use yii\data\ActiveDataProvider;
 use app\components\Ccomponent;
+use app\modules\survey\models\AssetList;
 use app\modules\survey\models\SurveyComputer;
 use app\modules\survey\models\SurveyComputerList;
+use yii\db\Expression;
 use yii\web\NotFoundHttpException;
 
 class DefaultController extends Controller
@@ -83,24 +85,75 @@ class DefaultController extends Controller
         $model = new SurveyComputerList();
         $model->employee_id = $emp->employee_id;
         $model->department_id = $emp->employee_dep_id;
+
+
+        $fiveYearsAgo = new Expression('DATE_SUB(CURDATE(), INTERVAL 5 YEAR)');
+
+        $assetList = AssetList::find()
+            ->where(['like', 'asset_number', '7440%', false])
+            ->andWhere(['<=', 'receiv_date', $fiveYearsAgo])
+            ->andWhere(['IS NOT', 'receiv_date', null])
+            ->asArray()
+            ->all();
+
         if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
+            if ($model->load($this->request->post())) {
+                if ($model->survey_type === 'ทดแทน') {
+                    $requestedCount = (int) $model->survey_list_reuest;
+                    $partNumbers = array_filter(explode(',', $model->survey_list_partnumber));
+
+                    if (count($partNumbers) < $requestedCount) {
+                        Yii::$app->session->setFlash('error', "กรุณากรอกเลขครุภัณฑ์ให้ครบ $requestedCount รายการ");
+                        return $this->renderAjax('_form', [
+                            'model' => $model,
+                            'assetList' => $assetList,
+                        ]);
+                    }
+                }
+
+                if ($model->save()) {
+                    return 'success';
+                }
             }
         } else {
             $model->loadDefaultValues();
         }
-        return $this->renderAjax('_form', ['model' => $model]);
-        //return $this->render('create', ['model' => @$model, 'dataProvider' => $dataProvider]);
+        return $this->renderAjax('_form', [
+            'model' => $model,
+            'assetList' => $assetList,
+        ]);
     }
 
     public function actionUpdate($id)
     {
         $model = SurveyComputerList::findOne($id);
+        $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
+        $assetList = AssetList::find()
+            ->where(['like', 'asset_number', '7440%', false])
+            ->asArray()
+            ->all();
+
+        $selectedPartnumbers = !empty($model->survey_list_partnumber)
+            ? explode(',', $model->survey_list_partnumber)
+            : [];
+
         if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
+            if ($model->load($this->request->post())) {
+
+                if (!empty($model->it_comment)) {
+                    $model->it_employee_id = $emp->employee_id;
+                }
+
+                if ($model->save()) {
+                }
             }
         }
-        return $this->renderAjax('_form', ['model' => $model]);
+
+        return $this->renderAjax('_form', [
+            'model' => $model,
+            'assetList' => $assetList,
+            'selectedPartnumbers' => $selectedPartnumbers
+        ]);
     }
 
     public function actionApprove($id)
@@ -116,7 +169,7 @@ class DefaultController extends Controller
             if ($model->save()) {
                 return 'success';
             } else {
-                Yii::error($model->errors, __METHOD__); 
+                Yii::error($model->errors, __METHOD__);
                 return json_encode(['status' => 'error', 'errors' => $model->errors]);
             }
         }
