@@ -15,6 +15,7 @@ $mode = '';
 $url = Url::to(['create']);
 $url2 = Url::to(['update']);
 $urlApprove = Url::to(['approve']);
+$canShow = \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')  || \Yii::$app->user->can('ReviewCommittee');
 
 $css = '.modal-xl {max-width: 80% !important;}  .blink {  animation: blink-animation 2s steps(5, start) infinite; -webkit-animation: blink-animation 2s steps(5, start) infinite; }';
 $this->registerCss($css);
@@ -120,7 +121,7 @@ JS;
                                     $approve = $model->survey_list_approve;
                                     $surveyType = trim($model->survey_type);
 
-                                    if ($surveyType === 'ทดแทน' && $itComment === '') {
+                                    if ($surveyType === 'ทดแทน' && $itComment === '' &&  $approve === null) {
                                         return '<span class="badge bg-warning text-dark">รอความคิดเห็น IT</span>';
                                     }
 
@@ -145,8 +146,12 @@ JS;
                                 //'noWrap' => TRUE,
                                 'format' => 'raw',
                                 'value' => function ($model) {
+                                    $text = $model->item_id == 0
+                                        ? '<span class="text-danger font-italic">รายการนอกเกณฑ์ราคากลาง</span>'
+                                        : Html::encode($model->item->item);
+
                                     return Html::a(
-                                        $model->item->item,
+                                        $text,
                                         'javascript:;',
                                         [
                                             'class' => 'btnUpdate text-primary',
@@ -163,6 +168,16 @@ JS;
                                 'format' => ['decimal', 0],
                                 'hAlign' => 'right',
                                 'pageSummary' => true,
+                            ],
+                            [
+                                'attribute' => 'survey_list_approve',
+                                'headerOptions' => ['class' => 'font-weight-bold small'],
+                                'contentOptions' => ['class' => 'small'],
+                                'vAlign' => 'top',
+                                'format' => ['decimal', 0],
+                                'hAlign' => 'right',
+                                'pageSummary' => true,
+                                'visible' => $canShow,
                             ],
                             [
                                 'label' => 'ราคา',
@@ -217,7 +232,7 @@ JS;
                                         return Html::button('อนุมัติ', [
                                             'class' => 'btnApprove btn btn-sm btn-success',
                                             'data-id' => $model->survey_list_id,
-                                            'disabled' => $disabled,
+                                            // 'disabled' => $disabled,
                                             'title' => $disabled ? 'ต้องมีความคิดเห็น IT ก่อนอนุมัติ' : null,
                                         ]);
                                     },

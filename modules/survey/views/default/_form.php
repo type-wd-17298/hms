@@ -40,11 +40,6 @@ $('#frm').on('beforeSubmit', function(e) {
     const filledAssets = assetNumbers.filter(val => val && val.trim() !== '');
     const actualCount = filledAssets.length;
 
-    console.log('expectedCount:', expectedCount);
-    console.log('assetNumbers:', assetNumbers);
-    console.log('filledAssets:', filledAssets);
-    console.log('actualCount:', actualCount);
-
     if (actualCount < expectedCount) {
         Swal.fire({
             icon: 'warning',
@@ -107,6 +102,7 @@ $(document).on('change', 'input[name$="[survey_type]"]', function () {
 JS;
 $this->registerJs($js, $this::POS_READY);
 $this->registerCss(".table-compact th, .table-compact td { padding: 4px 8px !important; vertical-align: middle; font-size: 13px; }");
+
 ?>
 
 <?php
@@ -189,15 +185,37 @@ $form = ActiveForm::begin([
                     $items,
                     [
                         'prompt' => '--เลือกรายการ--',
+                        'id' => 'item-dropdown'
                     ]
                 );
                 ?>
             </div>
+
+
             <div class="col-md-4">
                 <?= $form->field($model, 'survey_list_reuest')->textInput(['id' => 'request-count']) ?>
             </div>
 
+            <div class="col-md-12" id="detail-field" style="display: none;">
+                <?= $form->field($model, 'detail')->textarea([
+                    'rows' => 4,
+                ]) ?>
+            </div>
+            <?php
+            $this->registerJs(<<<JS
+    function toggleDetailField() {
+        var value = $('#item-dropdown').val();
+        if (value === '0') {
+            $('#detail-field').slideDown();
+        } else {
+            $('#detail-field').slideUp();
+        }
+    }
 
+    $('#item-dropdown').on('change', toggleDetailField);
+    toggleDetailField(); // เรียกตอนโหลดหน้า เพื่อเคลียร์สถานะเดิม
+JS);
+            ?>
             <div class="col-md-4">
                 <?= $form->field($model, 'survey_list_problem')->textarea(['rows' => 4, 'class' => 'form-control form-control-sm']) ?>
             </div>

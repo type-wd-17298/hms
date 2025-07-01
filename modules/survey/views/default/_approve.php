@@ -43,12 +43,11 @@ $(document).off('beforeSubmit', '#approve-form').on('beforeSubmit', '#approve-fo
             });
         },
        error: function(xhr, status, error) {
-    console.error('AJAX Error:', status, error);
-    console.error('Response Text:', xhr.responseText);
-    alert('เกิดข้อผิดพลาด: ' + error);
-}
+          console.error('AJAX Error:', status, error);
+          console.error('Response Text:', xhr.responseText);
+          alert('เกิดข้อผิดพลาด: ' + error);
+      }
     });
-
     return false;
 });
 JS;

@@ -167,10 +167,13 @@ class DefaultController extends Controller
             $model->approver_employee_id = $emp->employee_id;
 
             if ($model->save()) {
+                Yii::info($model->getErrors(), __METHOD__);
+                Yii::info(Yii::$app->request->post(), __METHOD__);
                 return 'success';
             } else {
                 Yii::error($model->errors, __METHOD__);
-                return json_encode(['status' => 'error', 'errors' => $model->errors]);
+                Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+                return ['status' => 'error', 'errors' => $model->getErrors()];
             }
         }
 
@@ -182,8 +185,8 @@ class DefaultController extends Controller
 
     public function actionDashboard()
     {
-        if (Yii::$app->request->isAjax) {
-            return $this->renderPartial('dashboard');
+        if (!Yii::$app->user->can('SuperAdmin') && !Yii::$app->user->can('ITAdmin') && !Yii::$app->user->can('ReviewCommittee')) {
+            throw new \yii\web\ForbiddenHttpException('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
         }
         return $this->render('dashboard');
     }
