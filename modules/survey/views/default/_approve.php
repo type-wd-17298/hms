@@ -77,24 +77,44 @@ $this->registerJs($js, \yii\web\View::POS_READY);
 
     <div class="col-md-12">
       <strong>ชื่อครุภัณฑ์:</strong>
-      <span id="itemName"> <?= Html::encode($model->item->item) ?></span>
+      <span id="itemName" style="<?= $model->item_id == 0 ? 'color:red;' : '' ?>">
+        <?= $model->item_id == 0
+          ? 'รายการนอกเกณฑ์ราคากลาง'
+          : Html::encode($model->item->item ?? '-') ?>
+      </span>
     </div>
 
     <div class="col-md-4">
       <strong>จำนวนที่ร้องขอ:</strong>
-      <span id="itemRequestedQty"> <?= Html::encode($model->survey_list_reuest) ?>
+      <span id="itemRequestedQty">
+        <?= Html::encode($model->survey_list_reuest) ?>
       </span>
     </div>
 
     <div class="col-md-4">
       <strong>ราคาต่อหน่วย:</strong>
-      <span id="itemPrice"> <?= Html::encode($model->item->price ?? 0) ?> บาท</span>
+      <span id="itemPrice">
+        <?= Html::encode($model->item_id == 0
+          ? $model->requested_price
+          : ($model->item->price ?? 0)) ?> บาท
+      </span>
     </div>
 
     <div class="col-md-4">
       <strong>ราคารวม:</strong>
-      <span id="totalPrice"><?= Html::encode(($model->item->price ?? 0) * $model->survey_list_reuest) ?> บาท</span>
+      <span id="totalPrice">
+        <?php
+        $unitPrice = $model->item_id == 0
+          ? $model->requested_price
+          : ($model->item->price ?? 0);
+
+        $totalPrice = $unitPrice * $model->survey_list_reuest;
+
+        echo Html::encode($totalPrice) . ' บาท';
+        ?>
+      </span>
     </div>
+
   </div>
 
   <h5 class="text-success mb-3"><i class="fa fa-clipboard-list me-1"></i> ความจำเป็นและลักษณะงาน</h5>
@@ -105,6 +125,13 @@ $this->registerJs($js, \yii\web\View::POS_READY);
         <?= Html::encode($model->survey_list_problem ?? '-') ?>
       </div>
     </div>
+
+    <?php if ($model->item_id == 0): ?>
+      <div class="col-md-12">
+        <strong>รายละเอียด:</strong>
+        <span><?= Html::encode($model->detail ?? '-') ?></span>
+      </div>
+    <?php endif; ?>
 
     <div class="col-md-6">
       <strong>ลักษณะงาน:</strong>

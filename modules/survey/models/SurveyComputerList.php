@@ -25,13 +25,23 @@ class SurveyComputerList extends \yii\db\ActiveRecord
     {
         return [
             [['survey_list_problem', 'survey_list_desc', 'survey_list_compare', 'item_id', 'employee_id', 'survey_list_reuest', 'survey_type', 'sub_department_id'], 'required'],
-            [['item_id', 'employee_id', 'survey_budget_year', 'department_id', 'survey_list_reuest', 'survey_list_approve', 'sub_department_id'], 'integer'],
+            [['item_id', 'employee_id', 'survey_budget_year', 'department_id', 'survey_list_reuest', 'survey_list_approve', 'sub_department_id', 'requested_price'], 'integer'],
             [['create_at', 'update_at', 'survey_list_approve_date'], 'safe'],
             [['survey_list_comment', 'approver_comments', 'it_comment'], 'string'],
             [['survey_list_problem', 'survey_list_desc', 'survey_list_compare', 'survey_list_partnumber', 'survey_type'], 'string', 'max' => 255],
             [['survey_list_partnumber'], 'string', 'max' => 255],
             [
                 ['detail'],
+                'required',
+                'when' => function ($model) {
+                    return $model->item_id == 0;
+                },
+                'whenClient' => "function (attribute, value) {
+                return $('#item-dropdown').val() == '0';
+            }"
+            ],
+            [
+                ['requested_price'],
                 'required',
                 'when' => function ($model) {
                     return $model->item_id == 0;
@@ -67,6 +77,7 @@ class SurveyComputerList extends \yii\db\ActiveRecord
             'survey_list_partnumber' => 'เลขที่ขอทดแทน',
             'approver_comments' => 'ความคิดเห็นผู้อนุมัติ',
             'detail' => 'รายละเอียด',
+            'requested_price' => 'ราคาที่ต้องการ'
         ];
     }
 

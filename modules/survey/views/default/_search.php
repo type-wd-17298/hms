@@ -93,6 +93,7 @@ $this->registerJs($js, $this::POS_READY);
                 ]
             );
         }
+        $canShow = \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')  || \Yii::$app->user->can('ReviewCommittee');
         ?>
 
         <div class="input-group-append btn-group" role="group">
@@ -101,31 +102,26 @@ $this->registerJs($js, $this::POS_READY);
 
             <?= Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'btn btn-primary btnCreate font-weight-bold']) ?>
 
-            <?php
-            $canShow = \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')  || \Yii::$app->user->can('ReviewCommittee');
-
-            echo Html::button(
-                '<i class="fa-solid fa-gauge-high"></i> Dashboard',
-                [
-                    'class' => 'btn text-white font-weight-bold',
-                    'style' => 'background-color: #fd7e14; border-color: #fd7e14;' . ($canShow ? '' : '; visibility: hidden'),
-                    'id' => 'btnDashboard',
-                    'type' => 'button',
-                ]
-            );
-            ?>
-
-            <?php
-            $dashboardUrl = \yii\helpers\Url::to(['default/dashboard']);
-            $js = <<<JS
-    document.getElementById('btnDashboard').addEventListener('click', function() {
-        window.location.href = '{$dashboardUrl}';
-    });
-JS;
-            $this->registerJs($js);
-            ?>
-
-
+            <?php if ($canShow): ?>
+                <?= Html::button(
+                    '<i class="fa-solid fa-gauge-high"></i> Dashboard',
+                    [
+                        'class' => 'btn text-white font-weight-bold',
+                        'style' => 'background-color: #fd7e14; border-color: #fd7e14;',
+                        'id' => 'btnDashboard',
+                        'type' => 'button',
+                    ]
+                ) ?>
+                <?php
+                $dashboardUrl = \yii\helpers\Url::to(['default/dashboard']);
+                $js = <<<JS
+        document.getElementById('btnDashboard').addEventListener('click', function() {
+            window.location.href = '{$dashboardUrl}';
+        });
+    JS;
+                $this->registerJs($js);
+                ?>
+            <?php endif; ?>
             <?php if (
                 \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')
             ): ?>
@@ -153,7 +149,6 @@ JS;
                     </ul>
                 </div>
             <?php endif; ?>
-
         </div>
     </div>
 </form>

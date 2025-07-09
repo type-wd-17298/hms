@@ -167,10 +167,9 @@ $form = ActiveForm::begin([
             </div>
 
 
-            <div class="col-md-8">
+            <div class="col-md-6" id="item-container">
                 <?php
 
-                // use yii\helpers\ArrayHelper;
                 use app\modules\survey\models\SurveyComputer;
 
                 $items = ArrayHelper::map(
@@ -191,30 +190,54 @@ $form = ActiveForm::begin([
                 ?>
             </div>
 
+            <?php
+            $this->registerJs(<<<JS
+    function updateLayout() {
+        const selected = $('#item-dropdown').val();
+        if (selected == '0') {
+            $('#item-container').removeClass().addClass('col-md-6');
+            $('#requested-price-container').show();
+            $('#survey-list-container').removeClass().addClass('col-md-3');
+        } else {
+            $('#item-container').removeClass().addClass('col-md-8');
+            $('#requested-price-container').hide();
+            $('#survey-list-container').removeClass().addClass('col-md-4');
+        }
+    }
 
-            <div class="col-md-4">
+    updateLayout();
+    $('#item-dropdown').on('change', updateLayout);
+JS);
+            ?>
+
+            <div class="col-md-3" id="requested-price-container">
+                <?= $form->field($model, 'requested_price')->textInput(['id' => 'requested-price']) ?>
+            </div>
+
+            <div class="col-md-3" id="survey-list-container">
                 <?= $form->field($model, 'survey_list_reuest')->textInput(['id' => 'request-count']) ?>
             </div>
 
             <div class="col-md-12" id="detail-field" style="display: none;">
                 <?= $form->field($model, 'detail')->textarea([
                     'rows' => 4,
+                    'class' => 'form-control form-control-xl'
                 ]) ?>
             </div>
             <?php
             $this->registerJs(<<<JS
-    function toggleDetailField() {
-        var value = $('#item-dropdown').val();
-        if (value === '0') {
-            $('#detail-field').slideDown();
-        } else {
-            $('#detail-field').slideUp();
-        }
-    }
+                function toggleDetailField() {
+                    var value = $('#item-dropdown').val();
+                    if (value === '0') {
+                        $('#detail-field').slideDown();
+                    } else {
+                        $('#detail-field').slideUp();
+                    }
+                }
 
-    $('#item-dropdown').on('change', toggleDetailField);
-    toggleDetailField(); // เรียกตอนโหลดหน้า เพื่อเคลียร์สถานะเดิม
-JS);
+        $('#item-dropdown').on('change', toggleDetailField);
+        toggleDetailField();
+ JS);
             ?>
             <div class="col-md-4">
                 <?= $form->field($model, 'survey_list_problem')->textarea(['rows' => 4, 'class' => 'form-control form-control-sm']) ?>
