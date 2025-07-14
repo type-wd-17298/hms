@@ -69,13 +69,24 @@ foreach ($allModels as $model) {
     if ($approveQty !== null && $approveQty != 0) {
         $countApproved++;
         $totalApprovedPrice += $approveQty * $unitPrice;
+    } elseif ($approveQty === null || $itComment === '' || $approveQty === '') {
+        $countPending++;
     } elseif ($approveQty === 0 && $requestQty !== 0) {
         $countRejected++;
-    } elseif ($approveQty === null || $itComment === '-') {
-        $countPending++;
     }
 }
 
+$surveyTypeStats = [
+    'เพิ่มเติม' => 0,
+    'ทดแทน' => 0,
+];
+
+foreach ($allModels as $model) {
+    $type = trim($model->survey_type);
+    if (isset($surveyTypeStats[$type])) {
+        $surveyTypeStats[$type]++;
+    }
+}
 
 arsort($byDepartment);
 $topDepartments = array_slice($byDepartment, 0, 10, true);
@@ -293,8 +304,8 @@ CSS);
 
             <div class="card flex-fill" style="min-height: 550px;">
                 <div class="card-body d-flex flex-column justify-content-center">
-                    <h3 class="text-center mb-3">xxxxxxxxx</h3>
-                    <p class="text-center text-muted">เนื้อหาหรือรายงานอื่น ๆ</p>
+                    <h3 class="text-center mb-3">สรุปตามประเภทคำขอ</h3>
+                    <canvas id="surveyTypeChart" style="height: 300px;"></canvas>
                 </div>
             </div>
         </div>
@@ -343,3 +354,83 @@ CSS);
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('surveyTypeChart').getContext('2d');
+
+    const data = {
+        labels: ['เพิ่มเติม', 'ทดแทน'],
+        datasets: [{
+            label: 'จำนวนคำขอ',
+            data: [<?= $surveyTypeStats['เพิ่มเติม'] ?>, <?= $surveyTypeStats['ทดแทน'] ?>],
+            backgroundColor: ['#4BC0C0', '#FF9F40'], // สีสดใส
+            borderRadius: 8, // มุมโค้ง
+            barPercentage: 0.6, // ความหนาของแท่ง
+            categoryPercentage: 0.7,
+        }]
+    };
+
+    const config = {
+        type: 'bar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: 20
+            },
+            plugins: {
+                tooltip: {
+                    backgroundColor: '#f4f4f4',
+                    titleColor: '#000',
+                    bodyColor: '#000',
+                    borderColor: '#ccc',
+                    borderWidth: 1,
+                    cornerRadius: 6
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        font: {
+                            family: 'Kanit',
+                            size: 14
+                        },
+                        color: '#333'
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 80,
+                    ticks: {
+                        stepSize: 10,
+                        font: {
+                            family: 'Kanit',
+                            size: 14
+                        },
+                        color: '#333'
+                    },
+                    grid: {
+                        color: '#f0f0f0'
+                    }
+                }
+            }
+        }
+    };
+
+    new Chart(ctx, config);
+</script>
+
+<style>
+    #surveyTypeChart {
+        height: 300px;
+        max-height: 550px;
+    }
+</style>

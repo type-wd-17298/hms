@@ -134,8 +134,8 @@ $this->registerJs($js, $this::POS_READY);
                         'aria-expanded' => 'false',
                     ]) ?>
                     <ul class="dropdown-menu">
-                        <li><?= Html::a('<i class="fa-regular fa-file-lines"></i> รายงานสรุป', ['report/summary'], ['class' => 'dropdown-item']) ?></li>
-                        <li><?= Html::a('<i class="fa-solid fa-building"></i> รายงานขอคอมพิวเตอร์', ['report/department'], ['class' => 'dropdown-item']) ?></li>
+                        <!-- /<li><?= Html::a('<i class="fa-regular fa-file-lines"></i> รายงานสรุป', ['report/summary'], ['class' => 'dropdown-item']) ?></li> -->
+                        <!-- <li><?= Html::a('<i class="fa-solid fa-building"></i> รายงานขอคอมพิวเตอร์', ['report/department'], ['class' => 'dropdown-item']) ?></li> -->
                         <li>
                             <?= Html::a(
                                 '<i class="fa-solid fa-file-excel"></i> รายงานทั้งหมด',

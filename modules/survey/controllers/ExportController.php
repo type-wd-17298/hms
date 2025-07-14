@@ -270,7 +270,7 @@ class ExportController extends Controller
 
         $row = 2;
         foreach ($models as $model) {
-            if (trim($model->it_comment) === '') {
+            if (trim($model->survey_list_approve) === '' || ($model->survey_list_approve) === null) {
                 $sheet3->setCellValue('A' . $row, $model->survey_list_id);
                 $sheet3->setCellValue('B' . $row, $model->dep->employee_dep_label ?? '-');
                 $sheet3->setCellValue('C' . $row, $model->item->item ?? '-');
