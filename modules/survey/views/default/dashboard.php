@@ -38,6 +38,8 @@ foreach ($allModels as $model) {
     $requestQty = $model->survey_list_reuest ?? 0;
     $approveQty = $model->survey_list_approve ?? 0;
     $unitPrice = $model->item->price ?? 0;
+    $requestedPrice = $model->requested_price ?? 0;
+    $surveyListId = $model->survey_list_id;
     $itComment = $model->it_comment;
 
     $requestAmount = $requestQty * $unitPrice;
@@ -51,24 +53,40 @@ foreach ($allModels as $model) {
     if ($requestQty > 0) {
         $countAllRequests++;
         $totalRequested += $requestQty;
-
         $byDepartment[$depLabel] = ($byDepartment[$depLabel] ?? 0) + $requestQty;
 
-        if (!isset($byItem[$itemName])) {
-            $byItem[$itemName] = [
-                'price' => $unitPrice,
-                'qty' => 0,
-                'approve' => 0,
+        if ($model->item_id == 0) {
+            // นอกเกณฑ์ราคากลาง: ต้องแสดงแยก
+            $key = "รายการนอกเกณฑ์ราคากลาง (ID: {$surveyListId})";
+            $byItem[$key] = [
+                'price' => null,
+                'qty' => $requestQty,
+                'approve' => $approveQty,
+                'calc_price' => $requestedPrice
             ];
+        } else {
+            // รายการปกติ: รวมตามชื่อ
+            if (!isset($byItem[$itemName])) {
+                $byItem[$itemName] = [
+                    'price' => $unitPrice,
+                    'qty' => 0,
+                    'approve' => 0,
+                    'calc_price' => $unitPrice
+                ];
+            }
+            $byItem[$itemName]['qty'] += $requestQty;
+            $byItem[$itemName]['approve'] += $approveQty;
         }
 
-        $byItem[$itemName]['qty'] += $requestQty;
-        $byItem[$itemName]['approve'] += $approveQty;
+        // ใช้คำนวณรวมทั้งหมด
+        $calculatedPrice = ($model->item_id == 0) ? $requestedPrice : $unitPrice;
+        $totalRequestAmount += $requestQty * $calculatedPrice;
+        $totalApproveAmount += $approveQty * $calculatedPrice;
     }
 
     if ($approveQty !== null && $approveQty != 0) {
         $countApproved++;
-        $totalApprovedPrice += $approveQty * $unitPrice;
+        $totalApprovedPrice += $approveQty * (($model->item_id == 0) ? $requestedPrice : $unitPrice);
     } elseif ($approveQty === null || $itComment === '' || $approveQty === '') {
         $countPending++;
     } elseif ($approveQty === 0 && $requestQty !== 0) {
@@ -294,7 +312,7 @@ CSS);
     </div>
 
     <div class="row">
-        <div class="mt-4 col-md-4 d-flex flex-column justify-content-between" style="height: 100%;">
+        <div class="mt-4 col-md-4 d-flex flex-column justify-content-between mb-0" style="height: 100%;">
             <div class="card flex-fill mb-4" style="min-height: 550px;">
                 <div class="card-body d-flex flex-column">
                     <h3 class="text-center mb-3">สรุปตามหน่วยงาน</h3>
@@ -302,7 +320,7 @@ CSS);
                 </div>
             </div>
 
-            <div class="card flex-fill" style="min-height: 550px;">
+            <div class="card flex-fill mb-0" style="min-height: 550px;">
                 <div class="card-body d-flex flex-column justify-content-center">
                     <h3 class="text-center mb-3">สรุปตามประเภทคำขอ</h3>
                     <canvas id="surveyTypeChart" style="height: 300px;"></canvas>
@@ -312,7 +330,7 @@ CSS);
 
 
         <div class="col-md-8">
-            <div class="card mt-4">
+            <div class="card mt-4 flex-fill">
                 <div class="card-body">
                     <h3>สรุปตามรายการครุภัณฑ์</h3>
                     <table class="table table-bordered table-striped">
@@ -330,14 +348,17 @@ CSS);
                             <?php foreach ($byItem as $item => $data): ?>
                                 <tr>
                                     <td><?= Html::encode($item) ?></td>
-                                    <td class="text-end"><?= number_format($data['price'], 2) ?></td>
+                                    <td class="text-end">
+                                        <?= $data['price'] === null ? '-' : number_format($data['price'], 2) ?>
+                                    </td>
                                     <td class="text-end"><?= number_format($data['qty']) ?></td>
                                     <td class="text-end"><?= number_format($data['approve']) ?></td>
-                                    <td class="text-end"><?= number_format($data['qty'] * $data['price'], 2) ?></td>
-                                    <td class="text-end"><?= number_format($data['approve'] * $data['price'], 2) ?></td>
+                                    <td class="text-end"><?= number_format($data['qty'] * $data['calc_price'], 2) ?></td>
+                                    <td class="text-end"><?= number_format($data['approve'] * $data['calc_price'], 2) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
+
                         <tfoot>
                             <tr class="table-secondary font-weight-bold">
                                 <td class="text-end">รวมทั้งหมด</td>

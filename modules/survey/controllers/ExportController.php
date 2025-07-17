@@ -128,7 +128,7 @@ class ExportController extends Controller
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle('สรุปตามหน่วยงาน');
 
-        $spreadsheet->getDefaultStyle()->getFont()->setName('TH SarabunPSK')->setSize(16); 
+        $spreadsheet->getDefaultStyle()->getFont()->setName('TH SarabunPSK')->setSize(16);
 
         $selectedYear = $model->survey_budget_year ?? (date('Y') + 544);
 
@@ -235,48 +235,73 @@ class ExportController extends Controller
 
         $colOffset = 3;
         $startColIndex = $lastColIndex + $colOffset;
-        $startColLetter = Coordinate::stringFromColumnIndex($startColIndex);
+        $groupStartCol = $startColIndex;
+        $groupEndCol = $startColIndex + 1;
+
+        $startColLetter = Coordinate::stringFromColumnIndex($groupStartCol);
+        $endColLetter = Coordinate::stringFromColumnIndex($groupEndCol);
+
         $sheet2->setCellValue("{$startColLetter}1", 'รายการครุภัณฑ์');
-        $sheet2->mergeCells("{$startColLetter}1:{$startColLetter}2");
+        $sheet2->mergeCells("{$startColLetter}1:{$endColLetter}1");
+        $sheet2->setCellValue("{$startColLetter}2", 'รหัส');
+        $sheet2->setCellValue("{$endColLetter}2", 'ชื่อรายการ');
+
+
+        $sheet2->getStyle("{$startColLetter}1:{$endColLetter}2")->applyFromArray([
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'font' => [
+                'bold' => true,
+                'name' => 'TH SarabunPSK',
+                'size' => 16,
+            ]
+        ]);
+
 
         $itemRow = 3;
         foreach ($items as $itemId) {
-            if ((int)$itemId === 0) {
-                $itemName = 'รายการนอกเกณฑ์ราคากลาง';
-            } else {
-                $itemModel = SurveyComputer::findOne($itemId); 
-                $itemName = $itemModel ? $itemModel->item ?? '-' : '-';
-            }
+            $itemModel = \app\modules\survey\models\SurveyComputer::findOne($itemId);
+            $itemName = ($itemId == 0) ? 'รายการนอกเกณฑ์ราคากลาง' : ($itemModel->item ?? '-');
 
-            $value = "{$itemId} - {$itemName}";
-            $cell = "{$startColLetter}{$itemRow}";
+            $sheet2->setCellValueByColumnAndRow($groupStartCol, $itemRow, $itemId);
+            $sheet2->setCellValueByColumnAndRow($groupEndCol, $itemRow, $itemName);
 
-            $sheet2->setCellValue($cell, $value);
-
-            $sheet2->getStyle($cell)->getFont()->setName('TH SarabunPSK')->setSize(16);
-            $sheet2->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $sheet2->getRowDimension($itemRow)->setRowHeight(24);
+            $idColLetter = Coordinate::stringFromColumnIndex($groupStartCol);
+            $sheet2->getStyle("{$idColLetter}{$itemRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             $itemRow++;
         }
 
+        $sheet2->getStyle("{$startColLetter}1:{$endColLetter}" . ($itemRow - 1))->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['argb' => 'FF000000'],
+                ]
+            ]
+        ]);
+
+        $sheet2->getColumnDimension($startColLetter)->setWidth(12); 
+        $sheet2->getColumnDimension($endColLetter)->setWidth(40); 
 
         // ---------------- Sheet 3 -------------------
-        $sheet3 = $spreadsheet->createSheet();
-        $sheet3->setTitle('รอความคิดเห็น IT');
-        $sheet3->setCellValue('A1', 'ID');
-        $sheet3->setCellValue('B1', 'แผนก');
-        $sheet3->setCellValue('C1', 'รายการครุภัณฑ์');
+        // $sheet3 = $spreadsheet->createSheet();
+        // $sheet3->setTitle('รอความคิดเห็น IT');
+        // $sheet3->setCellValue('A1', 'ID');
+        // $sheet3->setCellValue('B1', 'แผนก');
+        // $sheet3->setCellValue('C1', 'รายการครุภัณฑ์');
 
-        $row = 2;
-        foreach ($models as $model) {
-            if (trim($model->survey_list_approve) === '' || ($model->survey_list_approve) === null) {
-                $sheet3->setCellValue('A' . $row, $model->survey_list_id);
-                $sheet3->setCellValue('B' . $row, $model->dep->employee_dep_label ?? '-');
-                $sheet3->setCellValue('C' . $row, $model->item->item ?? '-');
-                $row++;
-            }
-        }
+        // $row = 2;
+        // foreach ($models as $model) {
+        //     if (trim($model->survey_list_approve) === '' || ($model->survey_list_approve) === null) {
+        //         $sheet3->setCellValue('A' . $row, $model->survey_list_id);
+        //         $sheet3->setCellValue('B' . $row, $model->dep->employee_dep_label ?? '-');
+        //         $sheet3->setCellValue('C' . $row, $model->item->item ?? '-');
+        //         $row++;
+        //     }
+        // }
 
         $filename = 'survey_computer_list_' . date('Y-m-d_H-i-s') . '.xlsx';
 
