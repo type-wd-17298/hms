@@ -56,7 +56,7 @@ JS;
     <div class="col-xl-12">
         <div class="card">
             <div class="card-header d-block">
-                <h4 class="card-title mb-2">ระบบบันทึกสำรวจความต้องการครุภัณฑ์คอมพิวเตอร์ ปี 2568</h4>
+                <h4 class="card-title mb-2">ระบบบันทึกสำรวจความต้องการครุภัณฑ์คอมพิวเตอร์ ปี 2569</h4>
             </div>
             <div id="search-bar" class="p-4 pb-0">
                 <?= $this->render('_search', ['model' => $dataProvider]) ?>
