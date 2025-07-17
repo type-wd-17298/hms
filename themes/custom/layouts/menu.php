@@ -8,19 +8,21 @@ use yii\helpers\Url;
             <span class="nav-text">ดำเนินการปี 2568</span>
         </a>
         <ul aria-expanded="false">
-		            <?PHP if (\Yii::$app->user->can('SuperAdmin') || 1 ) { ?>
-		    <li>
-                <a href="<?= Url::to(['/office/license/index']) ?>">ข้อมูลทะเบียนรถยนต์เจ้าหน้าที่ รพ.
-                    <span class="badge badge-xs badge-danger blink">มาใหม่</span>
-                </a>
-            </li>
-			<?PHP } ?>
+            <?PHP if (\Yii::$app->user->can('SuperAdmin') || 1) { ?>
+                <li>
+                    <a href="<?= Url::to(['/office/license/index']) ?>">ข้อมูลทะเบียนรถยนต์เจ้าหน้าที่ รพ.
+                        <span class="badge badge-xs badge-danger blink">มาใหม่</span>
+                    </a>
+                </li>
+            <?PHP } ?>
             <li>
                 <a href="<?= Url::to(['/plan/default/']) ?>">แผนปฏิบัติการ 2568</a>
             </li>
             <li>
-                <a href="<?= Url::to(['/survey/default/']) ?>">สำรวจความต้องการครุภัณฑ์คอมพิวเตอร์ 2568</a>
-            </li> 
+                <a href="<?= Url::to(['/survey/default/']) ?>">สำรวจความต้องการครุภัณฑ์คอมพิวเตอร์ 2569
+                    <span class="badge badge-xs badge-danger blink">มาใหม่</span>
+                </a>
+            </li>
         </ul>
     </li>
     <li class="<?= (Yii::$app->homeUrl == Yii::$app->request->url ? 'mm-active' : '') ?>">
@@ -29,7 +31,7 @@ use yii\helpers\Url;
             <span class="nav-text">หนังสืออิเลกทรอนิกส์</span>
         </a>
         <ul aria-expanded="false">
-<!--            <li><a href="<?= Url::to(['/office/default/']) ?>">Dashboard</a></li>-->
+            <!--            <li><a href="<?= Url::to(['/office/default/']) ?>">Dashboard</a></li>-->
             <li><a href="<?= Url::to(['/office/official/executive']) ?>">เอกสารรอดำเนินการ</a></li>
             <?PHP if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('ManagerAdmin') || \Yii::$app->user->can('ExecutiveUser') || \Yii::$app->user->can('SecretaryAdmin')) { ?>
                 <li>
@@ -86,7 +88,7 @@ use yii\helpers\Url;
                 <li><a href="<?= Url::to(['/servicedesk/default/']) ?>">SLA Dashboard</a></li>
                 <li><a href="<?= Url::to(['/servicedesk/default/report']) ?>">SLA Report</a></li>
                 <li><a href="<?= Url::to(['/servicedesk/default/incidence']) ?>">Incidence Report</a></li>
-				 <li><a href="<?= Url::to(['/servicedesk/activity-report/index']) ?>">Activity Report 8 ชม/วัน</a></li>
+                <li><a href="<?= Url::to(['/servicedesk/activity-report/index']) ?>">Activity Report 8 ชม/วัน</a></li>
                 <li><a href="<?= Url::to(['/servicedesk/aitss/']) ?>">บันทึกภาระงาน IT</a></li>
                 <li>
                     <a href="<?= Url::to(['/servicedesk/software/index']) ?>">ทะเบียนซอฟต์แวร์</a>
@@ -144,7 +146,7 @@ use yii\helpers\Url;
             <a class="has-arrow" href="javascript:void()" aria-expanded="false">
                 <i class="flaticon-043-menu"></i>
                 <span class="nav-text">ระบบบริหารคลังพัสดุ</span>
-    <!--                <span class="badge badge-xs style-1 badge-danger">New</span>-->
+                <!--                <span class="badge badge-xs style-1 badge-danger">New</span>-->
             </a>
             <ul aria-expanded="false">
                 <li><a href="<?= Url::to(['/inventory/stock-in/']) ?>">ลงรับสินค้าเข้าคลัง</a></li>
@@ -171,7 +173,7 @@ use yii\helpers\Url;
             </a>
             <ul aria-expanded="false">
                 <li><a href="<?= Url::to(['/hr/employee/']) ?>">จัดการข้อมูลบุคลากร</a></li>
-    <!--                <li><a href="<?= Url::to(['/hr/position/']) ?>">จัดการข้อมูลตำแหน่ง</a></li>-->
+                <!--                <li><a href="<?= Url::to(['/hr/position/']) ?>">จัดการข้อมูลตำแหน่ง</a></li>-->
                 <li><a href="<?= Url::to(['/hr/executive/']) ?>">จัดการข้อมูลตำแหน่งบริหาร</a></li>
                 <li><a href="<?= Url::to(['/hr/department/']) ?>">จัดการข้อมูลหน่วยงาน</a></li>
                 <li><a href="<?= Url::to(['/hr/structure/']) ?>">จัดการโครงสร้างหน่วยงาน</a></li>
@@ -233,7 +235,7 @@ use yii\helpers\Url;
         </li>
     <?PHP } ?>
     <li class="nav-item">
-        <a class="nav-link"  aria-expanded="false" href="<?= Url::to(\app\modules\line\components\lineBot::linelink()) ?>">
+        <a class="nav-link" aria-expanded="false" href="<?= Url::to(\app\modules\line\components\lineBot::linelink()) ?>">
             <i class="flaticon-012-checkmark"></i>
             <span class="nav-text font-weight-bold1">รับแจ้งเตือนผ่าน Line</span>
         </a>
