@@ -36,7 +36,7 @@ foreach ($allModels as $model) {
     $depLabel = $model->dep->employee_dep_label ?? '-';
     $itemName = $model->item->item ?? '-';
     $requestQty = $model->survey_list_reuest ?? 0;
-    $approveQty = $model->survey_list_approve ?? 0;
+    $approveQty = $model->survey_list_approve;
     $unitPrice = $model->item->price ?? 0;
     $requestedPrice = $model->requested_price ?? 0;
     $surveyListId = $model->survey_list_id;
@@ -87,7 +87,8 @@ foreach ($allModels as $model) {
     if ($approveQty !== null && $approveQty != 0) {
         $countApproved++;
         $totalApprovedPrice += $approveQty * (($model->item_id == 0) ? $requestedPrice : $unitPrice);
-    } elseif ($approveQty === null || $itComment === '' || $approveQty === '') {
+    } elseif((trim((string)$approveQty) === '' || $approveQty === null) &&
+          (trim((string)$itComment) === '' || $itComment === null)) {
         $countPending++;
     } elseif ($approveQty === 0 && $requestQty !== 0) {
         $countRejected++;
