@@ -52,7 +52,6 @@ class DefaultController extends Controller
     public function actionIndex()
     {
         $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
-        //$model = new Plan();
         @$params = \Yii::$app->request->queryParams;
 
         $query = SurveyComputerList::find();
@@ -72,11 +71,13 @@ class DefaultController extends Controller
             ],
             'sort' => [
                 'defaultOrder' => [
+                    'department_id' => SORT_ASC,
                     'create_at' => SORT_DESC,
                 ]
             ],
         ]);
-        return $this->render('index', ['dataProvider' => $dataProvider]); //'model' => @$model,
+
+        return $this->render('index', ['dataProvider' => $dataProvider]);
     }
 
     public function actionCreate()

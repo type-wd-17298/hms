@@ -28,7 +28,8 @@ class SurveyComputer extends \yii\db\ActiveRecord {
     }
 
     public function getFullname() {
-        return $this->id . ' ' . $this->item;
+        return $this->item;
     }
+
 
 }

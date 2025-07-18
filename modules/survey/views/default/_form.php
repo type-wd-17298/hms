@@ -172,11 +172,17 @@ $form = ActiveForm::begin([
 
                 use app\modules\survey\models\SurveyComputer;
 
-                $items = ArrayHelper::map(
-                    SurveyComputer::find()->orderBy(['id' => SORT_ASC])->all(),
-                    'id',
-                    'fullname'
-                );
+                $computers = SurveyComputer::find()
+                    ->where(['active' => 1])
+                    ->orderBy(['id' => SORT_ASC])
+                    ->all();
+
+                $items = [];
+                $index = 1;
+                foreach ($computers as $computer) {
+                    $label = $index++ . '. ' . $computer->fullname . ' (' . number_format($computer->price, 2) . ')';
+                    $items[$computer->id] = $label;
+                }
 
                 $items += [0 => 'อื่น ๆ'];
 
@@ -418,6 +424,42 @@ JS);
             });
         }
 
+        function initSurveyForm() {
+            bindPartnumberChange();
+            bindRequestCountInput();
+
+            const surveyType = $('input[name$="[survey_type]"]:checked').val();
+            const isReplacement = surveyType === 'ทดแทน';
+
+            const selectedStr = $('#selected-partnumbers').val();
+            const requestCountVal = parseInt($('#request-count').val());
+            const $tbody = $('#dynamic-rows');
+
+            $tbody.empty();
+
+            if (isReplacement) {
+                if (selectedStr) {
+                    const selectedArray = selectedStr.split(',');
+                    selectedArray.forEach((assetNumber, index) => {
+                        const rowHtml = createRow(index);
+                        $tbody.append(rowHtml);
+                        const $select = $(`select[name="SurveyComputerList[items][${index}][asset_number]"]`);
+                        $select.val(assetNumber).trigger('change');
+                    });
+                    $('#partnumber-table-wrapper').show();
+                } else if (!isNaN(requestCountVal) && requestCountVal > 0) {
+                    for (let i = 0; i < requestCountVal; i++) {
+                        $tbody.append(createRow(i));
+                    }
+                    $('#partnumber-table-wrapper').show();
+                }
+                bindSelect2();
+            } else {
+                $('#partnumber-table-wrapper').hide();
+            }
+        }
+
+
         $(document).on('change', '.asset-select', function() {
             const index = $(this).data('index');
             const selected = $(this).val();
@@ -433,40 +475,54 @@ JS);
         });
 
         $(document).ready(function() {
+            bindRequestCountInput();
+
             $('#modalForm').on('shown.bs.modal', function() {
-                bindPartnumberChange();
-                bindRequestCountInput();
-
-                const surveyType = $('input[name$="[survey_type]"]:checked').val();
-                const isReplacement = surveyType === 'ทดแทน';
-
-                const selectedStr = $('#selected-partnumbers').val();
-                const requestCountVal = parseInt($('#request-count').val());
-                const $tbody = $('#dynamic-rows');
-
-                $tbody.empty();
-
-                if (isReplacement) {
-                    if (selectedStr) {
-                        const selectedArray = selectedStr.split(',');
-                        selectedArray.forEach((assetNumber, index) => {
-                            const rowHtml = createRow(index);
-                            $tbody.append(rowHtml);
-                            const $select = $(`select[name="SurveyComputerList[items][${index}][asset_number]"]`);
-                            $select.val(assetNumber);
-                            $select.trigger('change');
-                        });
-                        bindSelect2();
-                        $('#partnumber-table-wrapper').show();
-                    } else if (!isNaN(requestCountVal) && requestCountVal > 0) {
-                        for (let i = 0; i < requestCountVal; i++) {
-                            $tbody.append(createRow(i));
-                        }
-                        $('#partnumber-table-wrapper').show();
-                    }
-                } else {
-                    $('#partnumber-table-wrapper').hide();
-                }
+                initSurveyForm();
             });
+
+            $(document).on('change', 'input[name$="[survey_type]"]', function() {
+                togglePartnumberField();
+                initSurveyForm();
+            });
+            togglePartnumberField();
         });
+
+        // $(document).ready(function() {
+        //     $('#modalForm').on('shown.bs.modal', function() {
+        //         bindPartnumberChange();
+        //         bindRequestCountInput();
+
+        //         const surveyType = $('input[name$="[survey_type]"]:checked').val();
+        //         const isReplacement = surveyType === 'ทดแทน';
+
+        //         const selectedStr = $('#selected-partnumbers').val();
+        //         const requestCountVal = parseInt($('#request-count').val());
+        //         const $tbody = $('#dynamic-rows');
+
+        //         $tbody.empty();
+
+        //         if (isReplacement) {
+        //             if (selectedStr) {
+        //                 const selectedArray = selectedStr.split(',');
+        //                 selectedArray.forEach((assetNumber, index) => {
+        //                     const rowHtml = createRow(index);
+        //                     $tbody.append(rowHtml);
+        //                     const $select = $(`select[name="SurveyComputerList[items][${index}][asset_number]"]`);
+        //                     $select.val(assetNumber);
+        //                     $select.trigger('change');
+        //                 });
+        //                 bindSelect2();
+        //                 $('#partnumber-table-wrapper').show();
+        //             } else if (!isNaN(requestCountVal) && requestCountVal > 0) {
+        //                 for (let i = 0; i < requestCountVal; i++) {
+        //                     $tbody.append(createRow(i));
+        //                 }
+        //                 $('#partnumber-table-wrapper').show();
+        //             }
+        //         } else {
+        //             $('#partnumber-table-wrapper').hide();
+        //         }
+        //     });
+        // });
     </script>
