@@ -21,7 +21,7 @@ class LicenseController extends Controller {
 
         try {
             $query = LicenseList::find();
-            if (\Yii::$app->user->can('SuperAdmin')) {
+            if (\Yii::$app->user->can('SuperAdmin')|| \Yii::$app->user->can('LicenseCar')) {
                 $query->andFilterWhere(['OR',
                     ['like', 'traffic_number', @$params['search']],
                     ['like', 'traffic_owner', @$params['search']],
@@ -54,7 +54,7 @@ class LicenseController extends Controller {
 
         // ตรวจสอบจำนวนทะเบียนที่ผู้ใช้เพิ่ม
         $currentCount = LicenseList::find()->where(['cid_hash' => $emp->employee_cid])->count();
-        if ($currentCount >= 2 AND!\Yii::$app->user->can('SuperAdmin')) {
+        if ($currentCount >= 2 && !(\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('LicenseCar'))) {
             Yii::$app->session->setFlash('error', 'คุณไม่สามารถเพิ่มทะเบียนรถได้เกิน 2 คัน');
             return $this->redirect(['index']); // กลับไปยังหน้า index
         }
