@@ -100,7 +100,7 @@ $this->registerJs($js, $this::POS_READY);
 
             <?= Html::submitButton('<i class="fa-solid fa-magnifying-glass"></i> แสดงข้อมูล', ['class' => 'btn btn-dark btnSubmit1']) ?>
 
-            <?= Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'btn btn-primary btnCreate font-weight-bold']) ?>
+            <!-- <?= Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'btn btn-primary btnCreate font-weight-bold']) ?> -->
 
             <?php if ($canShow): ?>
                 <?= Html::button(
