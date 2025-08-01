@@ -86,14 +86,13 @@ class DefaultController extends Controller
         $model = new SurveyComputerList();
         $model->employee_id = $emp->employee_id;
         $model->department_id = $emp->employee_dep_id;
-
-
         $fiveYearsAgo = new Expression('DATE_SUB(CURDATE(), INTERVAL 5 YEAR)');
 
         $assetList = AssetList::find()
-            ->where(['like', 'asset_number', '7440%', false])
+            ->where(['like', 'asset_number', '7440'])
+            ->andWhere(['status_id' => 1])
             ->andWhere(['<=', 'receiv_date', $fiveYearsAgo])
-            ->andWhere(['IS NOT', 'receiv_date', null])
+            ->orderBy(['asset_number' => SORT_ASC])
             ->asArray()
             ->all();
 
@@ -129,8 +128,13 @@ class DefaultController extends Controller
     {
         $model = SurveyComputerList::findOne($id);
         $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
+        $fiveYearsAgo = new Expression('DATE_SUB(CURDATE(), INTERVAL 5 YEAR)');
+
         $assetList = AssetList::find()
-            ->where(['like', 'asset_number', '7440%', false])
+            ->where(['like', 'asset_number', '7440'])
+            ->andWhere(['status_id' => 1])
+            ->andWhere(['<=', 'receiv_date', $fiveYearsAgo])
+            ->orderBy(['asset_number' => SORT_ASC])
             ->asArray()
             ->all();
 

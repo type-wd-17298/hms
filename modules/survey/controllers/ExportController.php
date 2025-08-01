@@ -20,8 +20,100 @@ class ExportController extends Controller
 {
     public function actionExportExcel()
     {
+
         $spreadsheet = new Spreadsheet();
-        // ---------------- Sheet 1 ----------------
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle('รายการทั้งหมด');
+
+        // ตั้งค่าหัวตาราง
+        $headers = [
+            'A1' => 'หน่วยงาน',
+            'B1' => 'รายการครุภัณฑ์คอมพิวเตอร์',
+            'C1' => 'พ/ท',
+            'D1' => 'จำนวน',
+            'E1' => 'อนุมัติ',
+            'F1' => 'ปัญหา/อุปสรรค',
+            'G1' => 'ลักษณะงาน',
+            'H1' => 'เปรียบเทียบกับปริมาณงาน',
+            'I1' => 'เลขที่ขอทดแทน',
+            'J1' => 'หมายเหตุ',
+            'K1' => 'ชื่อผู้บันทึก',
+            'L1' => 'ราคาต่อหน่วย',
+            'M1' => 'รวมขอ',
+            'N1' => 'ราคาอนุมัติ',
+            'O1' => 'ข้อมูลเพิ่มเติมจาก IT',
+        ];
+        foreach ($headers as $cell => $text) {
+            $sheet1->setCellValue($cell, $text);
+        }
+
+        $selectedYear = $model->survey_budget_year ?? (date('Y') + 544);
+        $models = SurveyComputerList::find()
+            ->alias('s')
+            ->joinWith(['dep d']) // join กับตาราง dep
+            ->where(['s.survey_budget_year' => $selectedYear])
+            ->orderBy(['d.employee_dep_label' => SORT_ASC])
+            ->all();
+
+        // --- กลุ่มตามหน่วยงาน ---
+        $groupedModels = [];
+        foreach ($models as $m) {
+            $depLabel = $m->dep->employee_dep_label ?? '-';
+            $groupedModels[$depLabel][] = $m;
+        }
+
+        $row = 2;
+
+        foreach ($groupedModels as $depLabel => $items) {
+            $startRow = $row;
+
+            foreach ($items as $model) {
+                $isOutOfSpec = $model->item_id == 0;
+                $itemName = $isOutOfSpec ? 'รายการนอกเกณฑ์ราคากลาง' : ($model->item->item ?? '-');
+                $unitPrice = $isOutOfSpec ? ($model->requested_price ?? 0) : ($model->item->price ?? 0);
+                $requestQty = $model->survey_list_reuest;
+                $approveQty = $model->survey_list_approve;
+
+                if ($row === $startRow) {
+                    $sheet1->setCellValue("A{$row}", $depLabel);
+                }
+
+                $sheet1->setCellValue("B{$row}", $itemName);
+                $sheet1->setCellValue("C{$row}", $model->survey_type);
+                $sheet1->setCellValue("D{$row}", $requestQty);
+                $sheet1->setCellValue("E{$row}", $approveQty !== null ? $approveQty : '-');
+                $sheet1->setCellValue("F{$row}", $model->survey_list_problem ?? '-');
+                $sheet1->setCellValue("G{$row}", $model->survey_list_desc ?? '-');
+                $sheet1->setCellValue("H{$row}", $model->survey_list_compare ?? '-');
+                $sheet1->setCellValue("I{$row}", $model->survey_list_partnumber ?? '-');
+                $sheet1->setCellValue("J{$row}", $model->survey_list_comment ?? '-');
+                $sheet1->setCellValue("K{$row}", $model->emp->employee_fullname ?? '-');
+                $sheet1->setCellValue("L{$row}", $unitPrice);
+                $sheet1->setCellValue("M{$row}", $unitPrice * $requestQty);
+                $sheet1->setCellValue("N{$row}", $approveQty !== null ? $approveQty * $unitPrice : '-');
+                $sheet1->setCellValue("O{$row}", $model->it_comment ?? '-');
+
+                $row++;
+            }
+
+            $endRow = $row - 1;
+            if ($endRow > $startRow) {
+                $sheet1->mergeCells("A{$startRow}:A{$endRow}");
+            }
+            // จัดให้อยู่กลางแนวตั้งและแนวนอน
+            $sheet1->getStyle("A{$startRow}:A{$endRow}")
+                ->getAlignment()
+                ->setVertical(Alignment::VERTICAL_CENTER)
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+
+        // --- สรุปรวมยอด ---
+        $lastDataRow = $row - 1;
+        $sheet1->setCellValue("L{$row}", 'รวมทั้งหมด:');
+        $sheet1->setCellValue("M{$row}", "=SUM(M2:M{$lastDataRow})");
+        $sheet1->setCellValue("N{$row}", "=SUM(N2:N{$lastDataRow})");
+
+        // --- Style และตกแต่ง ---
         $styleArray = [
             'borders' => [
                 'allBorders' => [
@@ -40,69 +132,6 @@ class ExportController extends Controller
             ],
         ];
 
-        $sheet1 = $spreadsheet->getActiveSheet();
-        $sheet1->setTitle('รายการทั้งหมด');
-
-        $headers = [
-            'A1' => 'หน่วยงาน',
-            'B1' => 'รายการครุภัณฑ์คอมพิวเตอร์',
-            'C1' => 'พ/ท',
-            'D1' => 'จำนวน',
-            'E1' => 'อนุมัติ',
-            'F1' => 'ปัญหา/อุปสรรค',
-            'G1' => 'ลักษณะงาน',
-            'H1' => 'เปรียบเทียบกับปริมาณงาน',
-            'I1' => 'เลขที่ขอทดแทน',
-            'J1' => 'หมายเหตุ',
-            'K1' => 'ชื่อผู้บันทึก',
-            'L1' => 'ราคาต่อหน่วย',
-            'M1' => 'รวมขอ',
-            'N1' => 'ราคาอนุมัติ',
-            'O1' => 'ข้อมูลเพิ่มเติมจาก IT',
-        ];
-
-        foreach ($headers as $cell => $text) {
-            $sheet1->setCellValue($cell, $text);
-        }
-
-        $selectedYear = $model->survey_budget_year ?? (date('Y') + 544);
-        $models = SurveyComputerList::find()
-            ->where(['survey_budget_year' => $selectedYear])
-            ->all();
-
-        $row = 2;
-        foreach ($models as $model) {
-            $isOutOfSpec = $model->item_id == 0;
-            $itemName = $isOutOfSpec ? 'รายการนอกเกณฑ์ราคากลาง' : ($model->item->item ?? '-');
-            $unitPrice = $isOutOfSpec ? ($model->requested_price ?? 0) : ($model->item->price ?? 0);
-            $requestQty = $model->survey_list_reuest;
-            $approveQty = $model->survey_list_approve;
-
-            $sheet1->setCellValue("A{$row}", $model->dep->employee_dep_label ?? '-');
-            $sheet1->setCellValue("B{$row}", $itemName);
-            $sheet1->setCellValue("C{$row}", $model->survey_type);
-            $sheet1->setCellValue("D{$row}", $requestQty);
-            $sheet1->setCellValue("E{$row}", $approveQty !== null ? $approveQty : '-');
-            $sheet1->setCellValue("F{$row}", $model->survey_list_problem ?? '-');
-            $sheet1->setCellValue("G{$row}", $model->survey_list_desc ?? '-');
-            $sheet1->setCellValue("H{$row}", $model->survey_list_compare ?? '-');
-            $sheet1->setCellValue("I{$row}", $model->survey_list_partnumber ?? '-');
-            $sheet1->setCellValue("J{$row}", $model->survey_list_comment ?? '-');
-            $sheet1->setCellValue("K{$row}", $model->emp->employee_fullname ?? '-');
-            $sheet1->setCellValue("L{$row}", $unitPrice);
-            $sheet1->setCellValue("M{$row}", $unitPrice * $requestQty);
-            $sheet1->setCellValue("N{$row}", $approveQty !== null ? $approveQty * $unitPrice : '-');
-            $sheet1->setCellValue("O{$row}", $model->it_comment ?? '-');
-
-            $row++;
-        }
-
-
-        $lastDataRow = $row - 1;
-        $sheet1->setCellValue("L{$row}", 'รวมทั้งหมด:');
-        $sheet1->setCellValue("M{$row}", "=SUM(M2:M{$lastDataRow})");
-        $sheet1->setCellValue("N{$row}", "=SUM(N2:N{$lastDataRow})");
-
         $sheet1->getStyle("A1:O{$row}")->applyFromArray($styleArray);
         for ($i = 1; $i <= $row; $i++) {
             $sheet1->getRowDimension($i)->setRowHeight(24);
@@ -111,17 +140,17 @@ class ExportController extends Controller
         $sheet1->getStyle("A1:O1")->getFont()->setBold(true);
         $sheet1->setAutoFilter("A1:O1");
 
+        // Highlight สี
         $sheet1->getStyle("C2:C{$lastDataRow}")->getFill()->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setARGB('FFFFF3CD');
-
         $sheet1->getStyle("E2:E{$lastDataRow}")->getFill()->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setARGB('FFDFFFE0');
 
+        // Alignment กลาง
         $sheet1->getStyle("C2:C{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
         $sheet1->getStyle("D2:D{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
         $sheet1->getStyle("E2:E{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
 
 
         // ---------------- Sheet 2 ----------------
@@ -283,8 +312,8 @@ class ExportController extends Controller
             ]
         ]);
 
-        $sheet2->getColumnDimension($startColLetter)->setWidth(12); 
-        $sheet2->getColumnDimension($endColLetter)->setWidth(40); 
+        $sheet2->getColumnDimension($startColLetter)->setWidth(12);
+        $sheet2->getColumnDimension($endColLetter)->setWidth(40);
 
         // ---------------- Sheet 3 -------------------
         // $sheet3 = $spreadsheet->createSheet();

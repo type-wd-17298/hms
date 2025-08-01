@@ -22,6 +22,7 @@ if ($selectedYear) {
     });
 }
 
+
 $totalRequested = 0;
 $totalApprovedPrice = 0;
 $byDepartment = [];
@@ -31,6 +32,11 @@ $countAllRequests = 0;
 $countApproved = 0;
 $countRejected = 0;
 $countPending = 0;
+
+$totalRequestQty = 0;
+$totalApproveQty = 0;
+$totalRequestAmount = 0;
+$totalApproveAmount = 0;
 
 foreach ($allModels as $model) {
     $depLabel = $model->dep->employee_dep_label ?? '-';
@@ -42,13 +48,8 @@ foreach ($allModels as $model) {
     $surveyListId = $model->survey_list_id;
     $itComment = $model->it_comment;
 
-    $requestAmount = $requestQty * $unitPrice;
-    $approveAmount = $approveQty * $unitPrice;
-
     $totalRequestQty += $requestQty;
     $totalApproveQty += $approveQty;
-    $totalRequestAmount += $requestAmount;
-    $totalApproveAmount += $approveAmount;
 
     if ($requestQty > 0) {
         $countAllRequests++;
@@ -56,7 +57,7 @@ foreach ($allModels as $model) {
         $byDepartment[$depLabel] = ($byDepartment[$depLabel] ?? 0) + $requestQty;
 
         if ($model->item_id == 0) {
-            // นอกเกณฑ์ราคากลาง: ต้องแสดงแยก
+            // นอกเกณฑ์ราคากลาง
             $key = "รายการนอกเกณฑ์ราคากลาง (ID: {$surveyListId})";
             $byItem[$key] = [
                 'price' => null,
@@ -65,7 +66,7 @@ foreach ($allModels as $model) {
                 'calc_price' => $requestedPrice
             ];
         } else {
-            // รายการปกติ: รวมตามชื่อ
+            // รายการปกติ
             if (!isset($byItem[$itemName])) {
                 $byItem[$itemName] = [
                     'price' => $unitPrice,
@@ -78,20 +79,22 @@ foreach ($allModels as $model) {
             $byItem[$itemName]['approve'] += $approveQty;
         }
 
-        // ใช้คำนวณรวมทั้งหมด
+        // ใช้คำนวณรวมยอด
         $calculatedPrice = ($model->item_id == 0) ? $requestedPrice : $unitPrice;
         $totalRequestAmount += $requestQty * $calculatedPrice;
         $totalApproveAmount += $approveQty * $calculatedPrice;
     }
 
-    if ($approveQty !== null && $approveQty != 0) {
+    if ($approveQty === null) {
+        // รออนุมัติ
+        $countPending++;
+    } elseif ((int)$approveQty === 0 && $requestQty !== 0) {
+        // ไม่อนุมัติ
+        $countRejected++;
+    } elseif ((int)$approveQty > 0) {
+        // อนุมัติแล้ว
         $countApproved++;
         $totalApprovedPrice += $approveQty * (($model->item_id == 0) ? $requestedPrice : $unitPrice);
-    } elseif((trim((string)$approveQty) === '' || $approveQty === null) &&
-          (trim((string)$itComment) === '' || $itComment === null)) {
-        $countPending++;
-    } elseif ($approveQty === 0 && $requestQty !== 0) {
-        $countRejected++;
     }
 }
 
