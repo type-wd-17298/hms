@@ -23,7 +23,7 @@ class SurveyComputer extends \yii\db\ActiveRecord {
         return [
             [['id', 'item', 'price', 'specification'], 'required'],
             [['id', 'price'], 'number'],
-            [['item', 'specification'], 'string'],
+            [['item', 'specification','short_name'], 'string'],
         ];
     }
 

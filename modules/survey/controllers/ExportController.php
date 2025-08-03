@@ -177,10 +177,20 @@ class ExportController extends Controller
             $colLetterStart = Coordinate::stringFromColumnIndex($colIndex);
             $colLetterEnd = Coordinate::stringFromColumnIndex($colIndex + 1);
 
+            if ($itemId == 0) {
+                $shortName = 'นอกเกณฑ์';
+            } else {
+                $itemModel = \app\modules\survey\models\SurveyComputer::findOne($itemId);
+                $shortName = $itemModel->short_name ?? "ID:{$itemId}";
+            }
+
             $sheet2->mergeCells("{$colLetterStart}1:{$colLetterEnd}1");
-            $sheet2->setCellValue("{$colLetterStart}1", $itemId);
+            $sheet2->setCellValue("{$colLetterStart}1", $shortName);
             $sheet2->setCellValue("{$colLetterStart}2", 'ทดแทน');
             $sheet2->setCellValue("{$colLetterEnd}2", 'เพิ่มเติม');
+
+            $sheet2->getColumnDimension($colLetterStart)->setAutoSize(true);
+            $sheet2->getColumnDimension($colLetterEnd)->setAutoSize(true);
 
             $colIndex += 2;
         }
