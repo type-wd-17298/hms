@@ -326,22 +326,99 @@ class ExportController extends Controller
         $sheet2->getColumnDimension($endColLetter)->setWidth(40);
 
         // ---------------- Sheet 3 -------------------
-        // $sheet3 = $spreadsheet->createSheet();
-        // $sheet3->setTitle('รอความคิดเห็น IT');
-        // $sheet3->setCellValue('A1', 'ID');
-        // $sheet3->setCellValue('B1', 'แผนก');
-        // $sheet3->setCellValue('C1', 'รายการครุภัณฑ์');
+        $sheet3 = $spreadsheet->createSheet();
+        $sheet3->setTitle('สรุปภาพรวม');
 
-        // $row = 2;
-        // foreach ($models as $model) {
-        //     if (trim($model->survey_list_approve) === '' || ($model->survey_list_approve) === null) {
-        //         $sheet3->setCellValue('A' . $row, $model->survey_list_id);
-        //         $sheet3->setCellValue('B' . $row, $model->dep->employee_dep_label ?? '-');
-        //         $sheet3->setCellValue('C' . $row, $model->item->item ?? '-');
-        //         $row++;
-        //     }
-        // }
+        $headers = [
+            'A1' => 'ลำดับ',
+            'B1' => 'รายการครุภัณฑ์',
+            'C1' => 'ราคากลาง',
+            'D1' => 'จำนวนร้องขอ',
+            'E1' => 'จำนวนที่อนุมัติ',
+            'F1' => 'มูลค่ารวม',
+            'G1' => 'มูลค่าอนุมัติรวม',
+        ];
 
+        foreach ($headers as $cell => $text) {
+            $sheet3->setCellValue($cell, $text);
+        }
+
+        $summary = [];
+        foreach ($models as $model) {
+            $itemId = $model->item_id;
+            $itemName = $itemId == 0 ? 'รายการนอกเกณฑ์ราคากลาง' : ($model->item->item ?? '-');
+            $unitPrice = $itemId == 0 ? ($model->requested_price ?? 0) : ($model->item->price ?? 0);
+            $requestQty = $model->survey_list_reuest ?? 0;
+            $approveQty = $model->survey_list_approve ?? 0;
+
+            if (!isset($summary[$itemName])) {
+                $summary[$itemName] = [
+                    'price' => $unitPrice,
+                    'request' => 0,
+                    'approve' => 0,
+                ];
+            }
+
+            $summary[$itemName]['request'] += $requestQty;
+            $summary[$itemName]['approve'] += $approveQty;
+        }
+
+        $row = 2;
+        $index = 1;
+        foreach ($summary as $itemName => $data) {
+            $price = $data['price'];
+            $req = $data['request'];
+            $app = $data['approve'];
+            $total = $req * $price;
+
+            $sheet3->setCellValue("A{$row}", $index);
+            $sheet3->setCellValue("B{$row}", $itemName);
+            $sheet3->setCellValue("C{$row}", $price);
+            $sheet3->setCellValue("D{$row}", $req);
+            $sheet3->setCellValue("E{$row}", $app);
+            $sheet3->setCellValue("F{$row}", $total);
+            $sheet3->setCellValue("G{$row}", "=E{$row}*C{$row}");
+
+            $row++;
+            $index++;
+        }
+
+        $sheet3->setCellValue("B{$row}", 'รวมทั้งหมด:');
+        $sheet3->setCellValue("D{$row}", "=SUM(D2:D" . ($row - 1) . ")");
+        $sheet3->setCellValue("E{$row}", "=SUM(E2:E" . ($row - 1) . ")");
+        $sheet3->setCellValue("F{$row}", "=SUM(F2:F" . ($row - 1) . ")");
+        $sheet3->setCellValue("G{$row}", "=SUM(G2:G" . ($row - 1) . ")");
+
+        $sheet3->getStyle("A1:G{$row}")->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                ],
+            ],
+            'font' => [
+                'name' => 'TH SarabunPSK',
+                'size' => 16,
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+
+        $sheet3->getStyle("A1:G1")->getFont()->setBold(true);
+
+        $sheet3->getStyle('B2:B' . $row)
+            ->getAlignment()
+            ->setWrapText(false)
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+
+        $sheet3->getColumnDimension('B')->setWidth(70); // รายการ
+        foreach (['A', 'C', 'D', 'E', 'F', 'G'] as $col) {
+            $sheet3->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $sheet3->setAutoFilter("A1:G1");
         $filename = 'survey_computer_list_' . date('Y-m-d_H-i-s') . '.xlsx';
 
         Yii::$app->response->format = Response::FORMAT_RAW;
