@@ -205,6 +205,7 @@ JS;
                                 'contentOptions' => ['class' => 'small'],
                                 'vAlign' => 'top',
                                 'format' => 'raw',
+                                'visible' => Yii::$app->user->can('SuperAdmin') || Yii::$app->user->can('SurveyApprove') || Yii::$app->user->can('ITAdmin'),
                             ],
                             [
                                 'attribute' => 'employee_id',
