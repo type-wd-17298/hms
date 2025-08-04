@@ -20,7 +20,7 @@ use yii\helpers\Url;
             </li>
             <li>
                 <a href="<?= Url::to(['/survey/default/']) ?>">สำรวจความต้องการครุภัณฑ์คอมพิวเตอร์ 2569
-                    <span class="badge badge-xs badge-danger blink">มาใหม่</span>
+                    <!-- <span class="badge badge-xs badge-danger blink">มาใหม่</span> -->
                 </a>
             </li>
         </ul>
