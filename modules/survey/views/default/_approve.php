@@ -235,24 +235,25 @@ $this->registerJs($js, \yii\web\View::POS_READY);
 
 <div class="row px-4 pt-0">
   <div class="col-md-3">
-    <div class="row g-2">
-      <label>จำนวนที่อนุมัติ</label>
-      <input type="number"
-        name="SurveyComputerList[survey_list_approve]"
-        class="form-control form-control-lg approve-input"
-        data-requested="<?= $requestedQty ?>"
-        data-badge-id="approvedBadge<?= $model->survey_list_id ?>"
-        data-input-id="approveInput<?= $model->survey_list_id ?>"
-        value="<?= isset($model->survey_list_approve) ? htmlspecialchars($model->survey_list_approve) : $requestedQty ?>"
-        <?= $model->survey_type === 'ทดแทน' ? 'readonly' : '' ?> />
+    <?php if ($model->survey_type == 'เพิ่มเติม'): ?>
+      <div class="row g-2">
+        <label>จำนวนที่อนุมัติ</label>
+        <input type="number"
+          name="SurveyComputerList[survey_list_approve]"
+          class="form-control form-control-lg approve-input"
+          data-requested="<?= $requestedQty ?>"
+          data-badge-id="approvedBadge<?= $model->survey_list_id ?>"
+          data-input-id="approveInput<?= $model->survey_list_id ?>"
+          value="<?= isset($model->survey_list_approve) ? htmlspecialchars($model->survey_list_approve) : $requestedQty ?>" />
 
-      <span id="approvedBadge<?= $model->survey_list_id ?>"
-        class="badge bg-success text-white w-100 text-center py-2"
-        style="font-size: 0.85rem;">
-        <i class="bi bi-check-circle-fill me-1"></i>
-        <?= $model->survey_type === 'ทดแทน' && isset($model->survey_list_approve) ? $model->survey_list_approve : 'ทั้งหมด' ?>
-      </span>
-    </div>
+        <span id="approvedBadge<?= $model->survey_list_id ?>"
+          class="badge bg-success text-white w-100 text-center py-2"
+          style="font-size: 0.85rem;">
+          <i class="bi bi-check-circle-fill me-1"></i>
+          <?= $requestedQty ?>
+        </span>
+      </div>
+    <?php endif; ?>
   </div>
 
   <div class="col-md-8">
