@@ -14,6 +14,8 @@ use yii\web\JsExpression;
 $mode = '';
 $url = Url::to(['create']);
 $url2 = Url::to(['update']);
+$deleteUrl = Url::to(['default/delete']);
+$this->registerJs("const deleteUrl = '{$deleteUrl}';", \yii\web\View::POS_HEAD);
 $urlApprove = Url::to(['approve']);
 $canShow = \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')  || \Yii::$app->user->can('ReviewCommittee');
 
@@ -48,7 +50,66 @@ $(document).on("click", ".btnApprove", function (event) {
     console.error("โหลดเนื้อหาล้มเหลว");
   });
 });
+$(document).on('click', '.btnDelete', function () {
+    const id = $(this).data('id');
 
+    if (!id) {
+        Swal.fire({
+            icon: 'error',
+            title: 'ไม่พบ ID ที่ต้องการลบ',
+            text: 'ไม่สามารถดำเนินการลบได้',
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#aaa',
+        confirmButtonText: 'ลบข้อมูล',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: deleteUrl,
+                type: 'POST',
+                data: { id: id },
+                headers: {
+                    'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ลบข้อมูลสำเร็จ',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+
+                        $('#modalForm').modal('hide');
+                        $('#frmSearch').submit(); 
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ลบไม่สำเร็จ',
+                            text: res.message || 'เกิดข้อผิดพลาด',
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
+                    });
+                }
+            });
+        }
+    });
+});
 JS;
 ?>
 
@@ -59,7 +120,7 @@ JS;
                 <h4 class="card-title mb-2">ระบบบันทึกสำรวจความต้องการครุภัณฑ์คอมพิวเตอร์ ปี 2569</h4>
             </div>
             <div id="search-bar" class="p-4 pb-0">
-                <?= $this->render('_search', ['model' => $dataProvider]) ?>
+                <?= $this->render('_search', ['model' => $dataProvide, 'canShowAddButton' => $canShowAddButton, 'year' => $year, 'yearOptions' => $yearOptions,]) ?>
             </div>
 
             <div class="card-body pb-0 pt-0">
@@ -72,6 +133,7 @@ JS;
                     <?= GridView::widget([
                         //'id' => 'gServiceView',
                         'dataProvider' => $dataProvider,
+                        // 'filterModel' => $searchModel,
                         'panel' => [
                             'type' => '',
                             'heading' => '',
@@ -170,17 +232,7 @@ JS;
                                 'pageSummary' => true,
                             ],
                             [
-                                'attribute' => 'survey_list_approve',
-                                'headerOptions' => ['class' => 'font-weight-bold small'],
-                                'contentOptions' => ['class' => 'small'],
-                                'vAlign' => 'top',
-                                'format' => ['decimal', 0],
-                                'hAlign' => 'right',
-                                'pageSummary' => true,
-                                'visible' => $canShow,
-                            ],
-                            [
-                                'label' => 'ราคา',
+                                'label' => 'ราคารวมขอ',
                                 'attribute' => 'item_id',
                                 'headerOptions' => ['class' => 'font-weight-bold small'],
                                 'contentOptions' => ['class' => 'font-weight-bold'],
@@ -193,19 +245,45 @@ JS;
                                 }
                             ],
                             [
-                                'attribute' => 'survey_budget_year',
+                                'attribute' => 'survey_list_approve',
                                 'headerOptions' => ['class' => 'font-weight-bold small'],
                                 'contentOptions' => ['class' => 'small'],
                                 'vAlign' => 'top',
-                                'format' => 'raw',
+                                'format' => ['decimal', 0],
+                                'hAlign' => 'right',
+                                'pageSummary' => true,
+                                'visible' => $canShow,
                             ],
+                            [
+                                'label' => 'ราคารวมอนุมัติ',
+                                'attribute' => 'item_id',
+                                'headerOptions' => ['class' => 'font-weight-bold small'],
+                                'contentOptions' => ['class' => 'font-weight-bold'],
+                                'vAlign' => 'top',
+                                'format' => ['decimal', 2],
+                                'hAlign' => 'right',
+                                'visible' => $canShow,
+                                'pageSummary' => true,
+                                'value' => function ($model) {
+                                    return $model->item->price * $model->survey_list_approve;
+                                }
+                            ],
+                            // [
+                            //     'attribute' => 'survey_budget_year',
+                            //     'headerOptions' => ['class' => 'font-weight-bold small'],
+                            //     'contentOptions' => ['class' => 'small'],
+                            //     'vAlign' => 'top',
+                            //     'format' => 'raw',
+                            // ],
                             [
                                 'attribute' => 'it_comment',
                                 'headerOptions' => ['class' => 'font-weight-bold small'],
                                 'contentOptions' => ['class' => 'small'],
                                 'vAlign' => 'top',
                                 'format' => 'raw',
-                                'visible' => Yii::$app->user->can('SuperAdmin') || Yii::$app->user->can('SurveyApprove') || Yii::$app->user->can('ITAdmin'),
+                                'visible' => Yii::$app->user->can('SuperAdmin') ||
+                                    Yii::$app->user->can('SurveyApprove') ||
+                                    Yii::$app->user->can('ITAdmin'),
                             ],
                             [
                                 'attribute' => 'employee_id',
@@ -224,7 +302,7 @@ JS;
                                 'header' => 'ดำเนินการ',
                                 'headerOptions' => ['class' => 'font-weight-bold small text-center'],
                                 'contentOptions' => ['class' => 'text-center'],
-                                'visible' => Yii::$app->user->can('SuperAdmin') || Yii::$app->user->can('SurveyApprove'),
+                                'visible' => Yii::$app->user->can('SuperAdmin') || Yii::$app->user->can('SurveyApprove') || \Yii::$app->user->can('ITAdmin'),
                                 'buttons' => [
                                     'approve' => function ($url, $model, $key) {
                                         $requiresComment = ($model->survey_type === 'ทดแทน');
@@ -233,13 +311,12 @@ JS;
                                         return Html::button('อนุมัติ', [
                                             'class' => 'btnApprove btn btn-sm btn-success',
                                             'data-id' => $model->survey_list_id,
-                                            // 'disabled' => $disabled,
                                             'title' => $disabled ? 'ต้องมีความคิดเห็น IT ก่อนอนุมัติ' : null,
+                                            // 'disabled' => $disabled,
                                         ]);
                                     },
-
                                 ],
-                            ],
+                            ]
                         ],
                     ]); ?>
 

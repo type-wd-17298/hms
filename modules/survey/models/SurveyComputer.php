@@ -21,9 +21,21 @@ class SurveyComputer extends \yii\db\ActiveRecord {
      */
     public function rules() {
         return [
-            [['id', 'item', 'price', 'specification'], 'required'],
-            [['id', 'price'], 'number'],
+            [['id', 'item', 'price', 'specification','DE_id'], 'required'],
+            [['id', 'price','active'], 'number'],
             [['item', 'specification','short_name'], 'string'],
+        ];
+    }
+
+    public function attributeLabels() {
+        return [
+            'id' => 'ID',
+            'item' => 'ชื่ออุปกรณ์/ระบบ',
+            'short_name' => 'ชื่อย่อ',
+            'price' => 'ราคา',
+            'specification' => 'รายละเอียด/คุณลักษณะ',
+            'DE_id' => 'ลำดับในเกณฑ์ราคากลาง',
+            'active' => 'สถานะ',
         ];
     }
 

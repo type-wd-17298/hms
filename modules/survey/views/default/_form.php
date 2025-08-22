@@ -36,7 +36,7 @@ $('#frm').on('beforeSubmit', function(e) {
             assetNumbers.push(value);
         }
     }
-
+    // console.log("assetNumbers", assetNumbers);
     const filledAssets = assetNumbers.filter(val => val && val.trim() !== '');
     const actualCount = filledAssets.length;
 
@@ -312,7 +312,20 @@ JS);
                         <?= Html::button('<i class="fas fa-times"></i> ไม่อนุมัติ', ['class' => 'btn btn-danger btn-lg font-weight-bold', 'id' => 'btnReject']) ?>
                     <?php else: ?>
                         <?= Html::button('<i class="fa fa-save fa-lg"></i> บันทึกข้อมูล', ['class' => 'btn btn-primary btn-lg font-weight-bold', 'id' => 'btnFrmOffice']) ?>
-                        <?= Html::button('<i class="fa fa-delete fa-lg"></i> ลบข้อมูล', ['class' => 'btn btn-danger btn-lg font-weight-bold', 'id' => 'btnFrmDelete']) ?>
+                        <?php if (
+                            !$model->isNewRecord &&
+                            (Yii::$app->user->can('SurveyApprove') || Yii::$app->user->can('ITAdmin'))
+                        ): ?>
+                            <?= Html::button(
+                                '<i class="fa fa-trash"></i> ลบข้อมูล',
+                                [
+                                    'class' => 'btn btn-danger btn-lg font-weight-bold btnDelete',
+                                    'data-id' => $model->survey_list_id,
+                                    'type' => 'button'
+                                ]
+                            ) ?>
+                        <?php endif; ?>
+
                     <?php endif; ?>
 
 
@@ -384,10 +397,12 @@ JS);
         }
 
 
-        function createRow(index) {
-            const options = Object.keys(assetData).map(assetNumber =>
-                `<option value="${assetNumber}">${assetNumber}</option>`
-            ).join('');
+        function createRow(index, selectedAssets = []) {
+
+            const options = Object.keys(assetData)
+                .filter(assetNumber => !selectedAssets.includes(assetNumber))
+                .map(assetNumber => `<option value="${assetNumber}">${assetNumber}</option>`)
+                .join('');
 
             return `
             <tr>
@@ -408,8 +423,29 @@ JS);
             </tr>`;
         }
 
+        function getSelectedAssets() {
+            const selected = [];
+            $('.asset-select').each(function() {
+                const val = $(this).val();
+                if (val) selected.push(val);
+            });
+            return selected;
+        }
 
+        let rowIndex = 0;
 
+        function addRow() {
+            const selectedAssets = getSelectedAssets();
+            const html = createRow(rowIndex, selectedAssets);
+            $('#assetTable tbody').append(html);
+
+            // รีเฟรช select2
+            $(`select[data-index="${rowIndex}"]`).select2({
+                placeholder: '-- เลือกเลขครุภัณฑ์ --'
+            });
+
+            rowIndex++;
+        }
 
         function bindRequestCountInput() {
             $('#request-count').off('input').on('input', function() {
@@ -465,6 +501,7 @@ JS);
             const selected = $(this).val();
             const asset = assetData[selected];
 
+            // update row ข้อมูล
             if (asset) {
                 $(`#receiv-date-${index}`).text(asset.receiv_date || '-');
                 $(`#description-${index}`).text(asset.description || '-');
@@ -472,6 +509,19 @@ JS);
             } else {
                 $(`#receiv-date-${index}, #description-${index}, #age-${index}`).text('-');
             }
+
+            // filter asset ซ้ำ
+            const selectedAssets = getSelectedAssets();
+            $('.asset-select').each(function() {
+                const currentVal = $(this).val();
+                $(this).find('option').each(function() {
+                    const optionVal = $(this).val();
+                    if (optionVal && optionVal !== currentVal) {
+                        $(this).prop('disabled', selectedAssets.includes(optionVal));
+                    }
+                });
+                $(this).trigger('change.select2'); // รีเฟรช select2
+            });
         });
 
         $(document).ready(function() {

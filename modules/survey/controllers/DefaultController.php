@@ -9,10 +9,15 @@ use app\modules\plan\models\Plan;
 use yii\data\ActiveDataProvider;
 use app\components\Ccomponent;
 use app\modules\survey\models\AssetList;
+use app\modules\survey\models\ControlEvent;
 use app\modules\survey\models\SurveyComputer;
 use app\modules\survey\models\SurveyComputerList;
+use app\modules\survey\models\SurveyComputerListSearch;
+use app\modules\survey\models\SurveyRequestItem;
 use yii\db\Expression;
+use yii\helpers\ArrayHelper;
 use yii\web\NotFoundHttpException;
+use yii\web\Response;
 
 class DefaultController extends Controller
 {
@@ -49,35 +54,85 @@ class DefaultController extends Controller
         }
     }
 
+    // public function actionIndex()
+    // {
+    //     $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
+    //     @$params = \Yii::$app->request->queryParams;
+
+    //     $query = SurveyComputerList::find();
+
+    //     if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')) {
+    //         //$query->andWhere(['department_id' => $emp->employee_dep_id]);
+
+    //     } else {
+    //         $query->andWhere(['department_id' => $emp->employee_dep_id]);
+    //     }
+    //     $query->andWhere(['survey_budget_year' => 2569]);
+
+    //     $dataProvider = new ActiveDataProvider([
+    //         'query' => $query,
+    //         'pagination' => [
+    //             'pageSize' => 10000
+    //         ],
+    //         'sort' => [
+    //             'defaultOrder' => [
+    //                 'department_id' => SORT_ASC,
+    //                 'sub_department_id' => SORT_ASC,
+    //                 'create_at' => SORT_DESC,
+    //             ]
+    //         ],
+    //     ]);
+
+    //     return $this->render('index', ['dataProvider' => $dataProvider]);
+    // }
+
     public function actionIndex()
     {
         $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
-        @$params = \Yii::$app->request->queryParams;
+        $searchModel = new SurveyComputerListSearch();
+        $params = Yii::$app->request->queryParams;
 
-        $query = SurveyComputerList::find();
-
-        if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')) {
-            //$query->andWhere(['department_id' => $emp->employee_dep_id]);
-
-        } else {
-            $query->andWhere(['department_id' => $emp->employee_dep_id]);
+        if (isset($params['search'])) {
+            $searchModel->survey_list_problem = $params['search'];
         }
-        $query->andWhere(['survey_budget_year' => 2569]);
 
-        $dataProvider = new ActiveDataProvider([
-            'query' => $query,
-            'pagination' => [
-                'pageSize' => 10000
-            ],
-            'sort' => [
-                'defaultOrder' => [
-                    'department_id' => SORT_ASC,
-                    'create_at' => SORT_DESC,
-                ]
-            ],
+        $year = Yii::$app->request->get('year', (int)date('Y') + 544);
+        $yearList = SurveyComputerList::find()
+            ->select('survey_budget_year')
+            ->distinct()
+            ->orderBy(['survey_budget_year' => SORT_DESC])
+            ->asArray()
+            ->all();
+
+        $yearOptions = ArrayHelper::map($yearList, 'survey_budget_year', 'survey_budget_year');
+        $dataProvider = $searchModel->search($params);
+        if (!(\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin'))) {
+            $query = $dataProvider->query;
+            $query->andWhere(['department_id' => $emp->employee_dep_id]);
+            $dataProvider->query = $query;
+        }
+
+        $query = $dataProvider->query;
+        $query->andWhere(['survey_budget_year' => $year]);
+        $dataProvider->query = $query;
+
+        $dataProvider->pagination = ['pageSize' => 10000];
+        $dataProvider->sort->defaultOrder = [
+            'department_id' => SORT_ASC,
+            'sub_department_id' => SORT_ASC,
+            'create_at' => SORT_DESC,
+        ];
+
+        $control = ControlEvent::findOne(['event_id' => 1, 'event_name' => 'survey']);
+        $canShowAddButton = $control && $control->active == 1;
+
+        return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'canShowAddButton' => $canShowAddButton,
+            'year' => $year,
+            'yearOptions' => $yearOptions,
         ]);
-
-        return $this->render('index', ['dataProvider' => $dataProvider]);
     }
 
     public function actionCreate()
@@ -86,12 +141,22 @@ class DefaultController extends Controller
         $model = new SurveyComputerList();
         $model->employee_id = $emp->employee_id;
         $model->department_id = $emp->employee_dep_id;
+        $year = Yii::$app->request->get('year', (int)date('Y') + 544);
+
         $fiveYearsAgo = new Expression('DATE_SUB(CURDATE(), INTERVAL 5 YEAR)');
+
+        $usedAssets = SurveyRequestItem::find()
+            ->alias('sri')
+            ->innerJoin('survey_computer_list scl', 'scl.survey_list_id = sri.survey_request_id')
+            ->where(['scl.survey_budget_year' => $year])
+            ->select('sri.asset_number')
+            ->column();
 
         $assetList = AssetList::find()
             ->where(['like', 'asset_number', '7440'])
             ->andWhere(['status_id' => 1])
             ->andWhere(['<=', 'receiv_date', $fiveYearsAgo])
+            ->andFilterWhere(['not in', 'asset_number', $usedAssets])
             ->orderBy(['asset_number' => SORT_ASC])
             ->asArray()
             ->all();
@@ -112,12 +177,24 @@ class DefaultController extends Controller
                 }
 
                 if ($model->save()) {
+                    $postData = Yii::$app->request->post('SurveyComputerList', []);
+                    $items = $postData['items'] ?? [];
+                    foreach ($items as $itemData) {
+                        $assetNumber = trim($itemData['asset_number'] ?? '');
+                        if ($assetNumber !== '') {
+                            $child = new SurveyRequestItem();
+                            $child->survey_request_id = $model->survey_list_id;
+                            $child->asset_number = $assetNumber;
+                            $child->save(false);
+                        }
+                    }
                     return 'success';
                 }
             }
         } else {
             $model->loadDefaultValues();
         }
+
         return $this->renderAjax('_form', [
             'model' => $model,
             'assetList' => $assetList,
@@ -161,32 +238,142 @@ class DefaultController extends Controller
         ]);
     }
 
+    public function actionDelete()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $id = Yii::$app->request->post('id');
+        if (!$id) {
+            throw new \yii\web\BadRequestHttpException('ID is required.');
+        }
+
+        $model = SurveyComputerList::findOne($id);
+        if (!$model) {
+            return ['success' => false, 'message' => 'ไม่พบข้อมูลที่จะลบ'];
+        }
+
+        try {
+            if ($model->delete()) {
+                return ['success' => true];
+            } else {
+                return ['success' => false, 'message' => 'ลบข้อมูลไม่สำเร็จ'];
+            }
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()];
+        }
+    }
+
+
     public function actionApprove($id)
     {
         $model = SurveyComputerList::findOne($id);
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 
         if (Yii::$app->request->isPost && $model->load(Yii::$app->request->post())) {
             $model->survey_list_approve_date = date('Y-m-d H:i:s');
-
             $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
             $model->approver_employee_id = $emp->employee_id;
 
             if ($model->save()) {
-                Yii::info($model->getErrors(), __METHOD__);
-                Yii::info(Yii::$app->request->post(), __METHOD__);
-                return 'success';
+                return ['success' => true];
             } else {
-                Yii::error($model->errors, __METHOD__);
-                Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
-                return ['status' => 'error', 'errors' => $model->getErrors()];
+                return ['success' => false, 'errors' => $model->getErrors()];
             }
         }
 
+        $items = SurveyRequestItem::find()
+            ->where(['survey_request_id' => $model->survey_list_id])
+            ->asArray()
+            ->all();
+
+        $assetNumbers = array_column($items, 'asset_number');
+        $assetList = AssetList::find()
+            ->where(['asset_number' => $assetNumbers])
+            ->asArray()
+            ->all();
+
+        $assetMap = ArrayHelper::index($assetList, 'asset_number');
+
+        $itemsWithAsset = array_map(function ($item) use ($assetMap) {
+            $asset = $assetMap[$item['asset_number']] ?? [];
+            return array_merge($item, $asset);
+        }, $items);
+
         return $this->renderAjax('_approve', [
-            'model' => $model,
-            'mode' => 'approve',
+            'model'    => $model,
+            'items' => $itemsWithAsset,
         ]);
     }
+
+    public function actionApproveMain()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        try {
+            $id = Yii::$app->request->post('id');
+
+            if (!$id) {
+                return ['success' => false, 'errors' => 'ID ไม่ถูกต้อง'];
+            }
+
+            $model = SurveyComputerList::findOne($id);
+
+            if (!$model) {
+                return ['success' => false, 'errors' => 'ไม่พบรายการใน SurveyComputerList'];
+            }
+
+            $approvedQty = SurveyRequestItem::find()
+                ->where(['survey_request_id' => $id, 'status' => 1])
+                ->count();
+
+            $model->survey_list_approve = $approvedQty;
+
+            if ($model->save(false)) {
+                return [
+                    'success' => true,
+                    'approvedQty' => $approvedQty,
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'errors' => $model->getErrors(),
+                ];
+            }
+        } catch (\Throwable $e) {
+            Yii::error($e->getMessage(), __METHOD__);
+            return [
+                'success' => false,
+                'errors' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    public function actionApproveItem()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $id = Yii::$app->request->post('id');
+        $action = Yii::$app->request->post('action');
+
+        $item = SurveyRequestItem::findOne($id);
+        if (!$item) {
+            return ['success' => false, 'message' => 'ไม่พบรายการ'];
+        }
+
+        if ($action === 'approve') {
+            $item->status = 1;
+        } elseif ($action === 'reject') {
+            $item->status = 2;
+        } else {
+            return ['success' => false, 'message' => 'Action ไม่ถูกต้อง'];
+        }
+
+        if ($item->save(false)) {
+            return ['success' => true];
+        } else {
+            return ['success' => false, 'message' => 'บันทึกไม่สำเร็จ'];
+        }
+    }
+
 
     public function actionDashboard()
     {
@@ -194,5 +381,86 @@ class DefaultController extends Controller
             throw new \yii\web\ForbiddenHttpException('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
         }
         return $this->render('dashboard');
+    }
+
+    public function actionMasterData()
+    {
+        if (!Yii::$app->user->can('SuperAdmin') && !Yii::$app->user->can('ITAdmin') && !Yii::$app->user->can('ReviewCommittee')) {
+            throw new \yii\web\ForbiddenHttpException('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+        }
+
+        $query = SurveyComputer::find();
+
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+            'pagination' => [
+                'pageSize' => 10,
+            ],
+            'sort' => [
+                'defaultOrder' => ['id' => SORT_ASC],
+            ],
+        ]);
+
+        return $this->render('masterData', [
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+
+    public function actionUpdateMaster($id)
+    {
+        $model = SurveyComputer::findOne($id);
+
+        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+            Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+            return [
+                'success' => true,
+                'message' => 'อัปเดตข้อมูลสำเร็จ',
+            ];
+        }
+
+        return $this->renderAjax('_updateMasterForm', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionDeleteMaster()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $id = Yii::$app->request->post('id');
+        $model = SurveyComputer::findOne($id);
+
+        if (!$model) {
+            return ['success' => false, 'message' => 'ไม่พบข้อมูล'];
+        }
+
+        if ($model->delete()) {
+            return ['success' => true];
+        } else {
+            return ['success' => false, 'message' => 'ลบข้อมูลไม่สำเร็จ'];
+        }
+    }
+
+    public function actionToggleFlatButton()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        if (!Yii::$app->user->can('ITAdmin')) {
+            return ['success' => false];
+        }
+
+        $control = ControlEvent::findOne(['event_id' => 1, 'event_name' => 'survey']);
+        if ($control) {
+            // รับค่า active จาก POST
+            $active = Yii::$app->request->post('active', null);
+            if ($active !== null) {
+                $control->active = (int)$active;
+                if ($control->save()) {
+                    return ['success' => true, 'active' => $control->active];
+                }
+            }
+        }
+
+        return ['success' => false];
     }
 }

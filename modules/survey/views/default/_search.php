@@ -4,42 +4,105 @@ use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
 use yii\helpers\Html;
 use app\components\Ccomponent;
+use app\modules\hr\models\EmployeeDep;
+use app\modules\survey\models\ControlEvent;
 use kartik\daterange\DateRangePicker;
 
 $js = <<<JS
+$('.btnSubmit').on('click', function(e) {
+    e.preventDefault();
+    var form = $('#frmSearch');
 
-        $('.btnSubmit').on('click', function (e) {
-           //e.preventDefault();
-           var form = $("#frmSearch");
-
-        $.ajax({
-            type: "GET",
-            url: form.attr('action'),
-            data: form.serialize(),
-            //dataType: "json",
-            encode: true,
-          }).done(function (data) {
-             $.pjax.reload({container: '#gServiceView', async: false});
-          });
-/*
-            $.ajax({
-                url: form.attr('action'),
-                type: 'get',
-                data: form.serialize(),
-                success: function(response) {
-                     $.pjax.reload({container: '#gServiceView', async: false});
-                }
-            });
-        */
-        return false;
+    var data = {};
+    form.find('input, select').each(function() {
+        var name = $(this).attr('name');
+        var val = $(this).val();
+        if(name && val !== ''){
+            data[name] = val;
+        }
     });
-JS;
 
+    $.pjax.reload({
+        container: '#gServiceView',
+        url: form.attr('action'),
+        data: data,
+        push: false,
+        replace: true,
+        timeout: 1000
+    });
+});
+JS;
+$canShow = \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')  || \Yii::$app->user->can('ReviewCommittee');
+$control = ControlEvent::findOne(['event_id' => 1, 'event_name' => 'survey']);
+$canShowFlatButton = $control ? ($control->active == 1) : false;
 $this->registerJs($js, $this::POS_READY);
 ?>
-<form id="frmSearch" class="form-inline" data-pjax="true">
+
+<div class="text-end my-3">
+    <?php if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')): ?>
+        <div class="form-check form-switch d-inline-flex align-items-center">
+            <input class="form-check-input me-2" type="checkbox" id="switchFlatButton" <?= $canShowFlatButton ? 'checked' : '' ?>>
+            <label class="form-check-label fw-semibold" for="switchFlatButton" style="cursor: pointer;">
+                แสดงปุ่มเพิ่มรายการ
+            </label>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?php
+$toggleFlatUrl = \yii\helpers\Url::to(['/survey/default/toggle-flat-button']);
+$jsFlat = <<<JS
+$('#switchFlatButton').on('change', function() {
+    var value = $(this).is(':checked') ? 1 : 0;
+    $.post('{$toggleFlatUrl}', {active: value}, function(data) {
+        if(data.success) {
+            location.reload();
+        } else {
+            alert('ไม่สามารถเปลี่ยนสถานะ Flat Action ได้');
+        }
+    });
+});
+JS;
+$this->registerJs($jsFlat);
+?>
+
+
+<form id="frmSearch" class="form-inline" data-pjax="true" action="<?= \yii\helpers\Url::to(['default/index']) ?>">
     <div class="input-group w-100">
+        <?= Html::dropDownList(
+            'year',
+            $year,
+            $yearOptions,
+            [
+                'class' => 'form-control',
+                'style' => 'max-width: 100px;',
+                'onchange' => 'this.form.submit()',
+            ]
+        ) ?>
+
         <input type="text" class="form-control" id="inputSearch" name="search" value="<?= @$_GET['search'] ?>" placeholder="ค้นหารายการ">
+
+        <?php if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin') || \Yii::$app->user->can('ITAdmin')): ?>
+            <?= Html::dropDownList(
+                'department',
+                Yii::$app->request->get('department', ''),
+                ArrayHelper::map(
+                    EmployeeDep::find()
+                        ->where(['employee_dep_status' => 1])
+                        ->joinWith('type')
+                        ->orderBy(['category_id' => 'ASC'])
+                        ->all(),
+                    'employee_dep_id',
+                    'employee_dep_label',
+                    'type.category_name'
+                ),
+                [
+                    'class' => 'form-control',
+                    'prompt' => '---เลือกหน่วยงานทั้งหมด---',
+                    'style' => 'max-width: 300px;',
+                ]
+            ) ?>
+        <?php endif; ?>
 
         <?php
         /*
@@ -81,26 +144,42 @@ $this->registerJs($js, $this::POS_READY);
           ]);
          *
          */
-        if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin')) {
-            echo Html::dropDownList(
-                'dep',
-                $dep,
-                ArrayHelper::map(app\modules\hr\models\EmployeeDep::find()->where(['employee_dep_status' => 1])->joinWith('type')->orderBy(['category_id' => 'ASC'])->asArray()->all(), 'employee_dep_id', 'employee_dep_label', 'type.category_name'),
-                [
-                    'class' => 'form-control form-control-md',
-                    'prompt' => '---เลือกหน่วยงานทั้งหมด---',
-                    'style' => 'max-width: 400px;',
-                ]
-            );
-        }
-        $canShow = \Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('ITAdmin')  || \Yii::$app->user->can('ReviewCommittee');
-        ?>
 
+
+        ?>
         <div class="input-group-append btn-group" role="group">
 
-            <?= Html::submitButton('<i class="fa-solid fa-magnifying-glass"></i> แสดงข้อมูล', ['class' => 'btn btn-dark btnSubmit1']) ?>
+            <?= Html::button('<i class="fa-solid fa-magnifying-glass"></i> แสดงข้อมูล', [
+                'class' => 'btn btn-dark btnSubmit',
+                'type' => 'button',
+            ]) ?>
 
-            <!-- <?= Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', ['class' => 'btn btn-primary btnCreate font-weight-bold']) ?> -->
+            <?php if ($canShowAddButton): ?>
+                <?= Html::button('<i class="fa-solid fa-folder-plus"></i> เพิ่มรายการ', [
+                    'class' => 'btn btn-primary btnCreate font-weight-bold'
+                ]) ?>
+            <?php endif; ?>
+
+            <?php if ($canShow): ?>
+                <?= Html::button(
+                    '<i class="fa-solid fa-database"></i> Master Data',
+                    [
+                        'class' => 'btn font-weight-bold',
+                        'style' => 'background-color: #6f42c1; color: white; border: none;',
+                        'id' => 'btnMasterData',
+                        'type' => 'button',
+                    ]
+                ) ?>
+                <?php
+                $masterDataUrl = \yii\helpers\Url::to(['/survey/default/master-data']);
+                $js = <<<JS
+                document.getElementById('btnMasterData').addEventListener('click', function() {
+                        window.location.href = '{$masterDataUrl}';
+                    });
+                JS;
+                $this->registerJs($js);
+                ?>
+            <?php endif; ?>
 
             <?php if ($canShow): ?>
                 <?= Html::button(
@@ -151,4 +230,5 @@ $this->registerJs($js, $this::POS_READY);
             <?php endif; ?>
         </div>
     </div>
+
 </form>

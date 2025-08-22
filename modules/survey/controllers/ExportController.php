@@ -205,7 +205,7 @@ class ExportController extends Controller
             $depLabel = $model->dep->employee_dep_label ?? '-';
             $itemId = $model->item_id;
             $type = $model->survey_type;
-            $qty = $model->survey_list_reuest;
+            $qty = $model->survey_list_approve;
 
             if (!isset($data[$depLabel])) {
                 $data[$depLabel] = [];

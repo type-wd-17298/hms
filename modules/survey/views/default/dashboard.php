@@ -57,18 +57,18 @@ foreach ($allModels as $model) {
         $byDepartment[$depLabel] = ($byDepartment[$depLabel] ?? 0) + $requestQty;
 
         if ($model->item_id == 0) {
-            // นอกเกณฑ์ราคากลาง
             $key = "รายการนอกเกณฑ์ราคากลาง (ID: {$surveyListId})";
             $byItem[$key] = [
+                'item_id' => 0,
                 'price' => null,
                 'qty' => $requestQty,
                 'approve' => $approveQty,
                 'calc_price' => $requestedPrice
             ];
         } else {
-            // รายการปกติ
             if (!isset($byItem[$itemName])) {
                 $byItem[$itemName] = [
+                    'item_id' => $model->item_id,
                     'price' => $unitPrice,
                     'qty' => 0,
                     'approve' => 0,
@@ -348,6 +348,11 @@ CSS);
                                 <th>มูลค่าอนุมัติรวม</th>
                             </tr>
                         </thead>
+                        <?php
+                        uasort($byItem, function ($a, $b) {
+                            return $a['item_id'] <=> $b['item_id'];
+                        });
+                        ?>
                         <tbody>
                             <?php foreach ($byItem as $item => $data): ?>
                                 <tr>
