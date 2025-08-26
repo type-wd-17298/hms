@@ -570,6 +570,34 @@ class DefaultController extends Controller
         return ['success' => false];
     }
 
+    public function actionExportTemplate()
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $columns = SurveyComputer::getTableSchema()->getColumnNames();
+
+        $colIndex = 1;
+        foreach ($columns as $colName) {
+            $sheet->setCellValueByColumnAndRow($colIndex, 1, $colName);
+            $colIndex++;
+        }
+
+        foreach (range(1, count($columns)) as $col) {
+            $sheet->getColumnDimensionByColumn($col)->setAutoSize(true);
+        }
+
+        $fileName = 'SurveyComputerTemplate.xlsx';
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment;filename=\"{$fileName}\"");
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
+
+
     public function actionExportExcel()
     {
         $spreadsheet = new Spreadsheet();

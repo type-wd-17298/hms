@@ -309,6 +309,10 @@ $this->registerJs($js);
     <?= $form->field(new \yii\base\DynamicModel(['excelFile']), 'excelFile')
         ->fileInput(['class' => 'form-control form-control-lg']) ?>
     <small class="text-muted">รองรับไฟล์ .xlsx เท่านั้น</small>
+    <?= Html::a('<i class="fa fa-file-excel"></i> Export Template', ['default/export-template'], [
+        'class' => 'text-success fw-bold text-decoration-none',
+        'target' => '_blank'
+    ]) ?>
 </div>
 
 <div class="d-flex justify-content-end mt-4">
