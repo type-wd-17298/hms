@@ -119,7 +119,7 @@ JS;
             <div class="card-header d-block">
                 <h4 class="card-title mb-2">ระบบบันทึกสำรวจความต้องการครุภัณฑ์คอมพิวเตอร์ ปี 2569</h4>
             </div>
-            <div id="search-bar" class="p-4 pb-0">
+            <div id="search-bar" class="px-4">
                 <?= $this->render('_search', ['model' => $dataProvide, 'canShowAddButton' => $canShowAddButton, 'year' => $year, 'yearOptions' => $yearOptions,]) ?>
             </div>
 

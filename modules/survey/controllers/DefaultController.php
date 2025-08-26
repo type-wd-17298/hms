@@ -18,6 +18,10 @@ use yii\db\Expression;
 use yii\helpers\ArrayHelper;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
+use yii\web\UploadedFile;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class DefaultController extends Controller
 {
@@ -423,6 +427,35 @@ class DefaultController extends Controller
         ]);
     }
 
+    public function actionCreateMaster()
+    {
+        $model = new SurveyComputer();
+
+        if ($model->load(Yii::$app->request->post())) {
+            Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+            $exists = SurveyComputer::find()
+                ->where(['DE_id' => $model->DE_id])
+                ->exists();
+
+            if ($exists) {
+                return [
+                    'success' => false,
+                    'message' => 'DE_id นี้มีอยู่แล้ว ไม่สามารถบันทึกซ้ำได้',
+                ];
+            }
+
+            if ($model->save()) {
+                return ['success' => true, 'message' => 'เพิ่มข้อมูลสำเร็จ'];
+            } else {
+                return ['success' => false, 'message' => json_encode($model->errors)];
+            }
+        }
+
+        return $this->renderAjax('_createMasterForm', ['model' => $model]);
+    }
+
+
     public function actionDeleteMaster()
     {
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
@@ -440,6 +473,79 @@ class DefaultController extends Controller
             return ['success' => false, 'message' => 'ลบข้อมูลไม่สำเร็จ'];
         }
     }
+
+    public function actionImportExcel()
+    {
+        $model = new \yii\base\DynamicModel(['excelFile']);
+        $model->addRule('excelFile', 'file', ['extensions' => 'xls, xlsx']);
+
+        if (Yii::$app->request->isPost) {
+            $model->excelFile = UploadedFile::getInstance($model, 'excelFile');
+
+            if ($model->validate()) {
+                $filePath = Yii::getAlias('@app') . '/uploads/' . time() . '.' . $model->excelFile->extension;
+                if (!$model->excelFile->saveAs($filePath)) {
+                    Yii::$app->session->setFlash('error', 'ไม่สามารถบันทึกไฟล์ได้');
+                    return $this->redirect(['index']);
+                }
+
+                $spreadsheet = IOFactory::load($filePath);
+                $sheet = $spreadsheet->getActiveSheet();
+                $rows = $sheet->toArray();
+
+                if (count($rows) < 2) {
+                    Yii::$app->session->setFlash('error', 'ไฟล์ Excel ไม่มีข้อมูล');
+                    return $this->redirect(['index']);
+                }
+
+                $header = array_map('trim', $rows[0]);
+
+                for ($i = 1; $i < count($rows); $i++) {
+                    $row = $rows[$i];
+                    $data = array_combine($header, $row);
+
+                    $id = isset($data['id']) ? intval($data['id']) : null;
+                    $_id = isset($data['_id']) ? intval($data['_id']) : null;
+                    $item = isset($data['item']) ? trim($data['item']) : null;
+                    $price = isset($data['price']) ? floatval($data['price']) : 0;
+                    $specification = isset($data['specification']) ? trim($data['specification']) : null;
+                    $shortName = isset($data['short_name']) ? trim($data['short_name']) : null;
+                    $DE_id = isset($data['DE_id']) ? intval($data['DE_id']) : null;
+                    $active = isset($data['active']) ? intval($data['active']) : 0;
+
+                    $computer = SurveyComputer::findOne(['item' => $item]);
+
+                    if ($computer) {
+                        $computer->id = $id;
+                        $computer->_id = $_id;
+                        $computer->price = $price;
+                        $computer->specification = $specification;
+                        $computer->short_name = $shortName;
+                        $computer->DE_id = $DE_id;
+                        $computer->active = $active;
+                        $computer->save(false);
+                    } else {
+                        $computer = new SurveyComputer();
+                        $computer->id = $id;
+                        $computer->_id = $_id;
+                        $computer->item = $item;
+                        $computer->price = $price;
+                        $computer->specification = $specification;
+                        $computer->short_name = $shortName;
+                        $computer->DE_id = $DE_id;
+                        $computer->active = $active;
+                        $computer->save(false);
+                    }
+                }
+
+                Yii::$app->session->setFlash('success', 'Import เสร็จสมบูรณ์');
+                return $this->redirect(['index']);
+            }
+        }
+        return $this->render('import', ['model' => $model]);
+    }
+
+
 
     public function actionToggleFlatButton()
     {
@@ -462,5 +568,66 @@ class DefaultController extends Controller
         }
 
         return ['success' => false];
+    }
+
+    public function actionExportExcel()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $headers = ['A1' => 'ลำดับ', 'B1' => 'ชื่ออุปกรณ์', 'C1' => 'ราคา', 'D1' => 'รายละเอียด', 'E1' => 'ลำดับในเกณฑ์ราคากลาง'];
+        foreach ($headers as $cell => $text) {
+            $sheet->setCellValue($cell, $text);
+        }
+
+        $sheet->getStyle('A1:E1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'D9EAD3']
+            ]
+        ]);
+
+        $models = SurveyComputer::find()->all();
+        $row = 2;
+        $index = 1;
+
+        foreach ($models as $model) {
+            $sheet->setCellValue("A$row", $index);
+            $sheet->setCellValue("B$row", $model->item);
+            $sheet->setCellValue("C$row", $model->price);
+            $specText = str_replace(["\r\n", "\r", "\n"], "\n", $model->specification);
+            $sheet->setCellValue("D$row", $specText);
+            $sheet->getStyle("D$row")
+                ->getAlignment()
+                ->setWrapText(true)
+                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+
+            $sheet->setCellValue("E$row", $model->DE_id);
+
+            $row++;
+            $index++;
+        }
+
+        foreach (range('A', 'E') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $sheet->getStyle("A1:E" . ($row - 1))->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['argb' => '000000'],
+                ],
+            ],
+        ]);
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'masterData_' . date('Ymd_His') . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment; filename=\"$fileName\"");
+        $writer->save("php://output");
+        exit;
     }
 }
