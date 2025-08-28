@@ -607,7 +607,7 @@ class PaperlessController extends Controller {
      */
 
     public function actionEmplist($q = null, $id = null, $mode = '', $dep = '', $ac = '') {
-        \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         $out = ['results' => ['id' => '', 'text' => '']];
         $userInfo = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
         $userDep = (!empty($dep) ? $dep : $userInfo->employee_dep_id);
@@ -620,49 +620,73 @@ class PaperlessController extends Controller {
             $mode = 'A';
         }
 
-        if ($mode == 'D') {//กรณีอยู่หน่วยงานเดียวกัน
-            $excutiveMan = [];
-            $depModel = ExecutiveHasCdepartment::find()->where(['employee_dep_id' => $userDep])->all(); //เพิ่มรายชื่อผู้บริหารที่มีตำแหน่งในการกำกับดูแลในฝ่าย แม้ว่าจะไม่ได้อยู่ในฝ่ายนั้นๆ
-            $headModel = EmployeePositionHead::find()->where(['OR', ['employee_dep_id' => $userDep], ['employee_executive_id' => ArrayHelper::getColumn($depModel, 'employee_executive_id')]])->all(); //เพิ่มรายชื่อผู้บริหารที่มีตำแหน่งในการกำกับดูแลในฝ่าย แม้ว่าจะไม่ได้อยู่ในฝ่ายนั้นๆ
-            $depLink = Employee::find()->where(['employee_dep_id' => $depLink])->all(); //เพิ่มรายชื่อหน่วยงานที่เกี่ยวข้อง
+        $allowedDepIds = \app\modules\hr\models\EmployeeDep::find()
+            ->select('employee_dep_id')
+            ->where(['employee_dep_label' => ['กลุ่มงานสุขภาพดิจิทัล', 'กลุ่มงานเทคโนโลยีสารสนเทศ']])
+            ->column();
 
-            $model->andWhere(['OR',
-                ['employee.employee_dep_id' => $userDep],
-                ['IN', 'employee_id', ArrayHelper::getColumn($headModel, 'employee_id')],
-                ['IN', 'employee_id', ArrayHelper::getColumn($depLink, 'employee_id')],
-            ]);
+        $userInAllowedGroups = in_array($userInfo->employee_dep_id, $allowedDepIds);
+
+        if ($userInAllowedGroups) {
+            // ถ้า user อยู่ในสองกลุ่มนี้ → มองเห็นทั้งสองกลุ่ม
+            $model->andWhere(['employee.employee_dep_id' => $allowedDepIds]);
+        } else {
+            // logic เดิมสำหรับ user กลุ่มอื่น
+            if ($mode == 'D') {
+                $depModel = ExecutiveHasCdepartment::find()->where(['employee_dep_id' => $userDep])->all();
+                $headModel = EmployeePositionHead::find()
+                    ->where([
+                        'OR',
+                        ['employee_dep_id' => $userDep],
+                        ['employee_executive_id' => ArrayHelper::getColumn($depModel, 'employee_executive_id')]
+                    ])->all();
+                $depLinkModel = Employee::find()->where(['employee_dep_id' => $depLink])->all();
+
+                $model->andWhere([
+                    'OR',
+                    ['employee.employee_dep_id' => $userDep],
+                    ['IN', 'employee_id', ArrayHelper::getColumn($headModel, 'employee_id')],
+                    ['IN', 'employee_id', ArrayHelper::getColumn($depLinkModel, 'employee_id')],
+                ]);
+            } else if ($mode == 'A') {
+                $depModel = ExecutiveHasCdepartment::find()->all();
+                $headModel = EmployeePositionHead::find()
+                    ->where([
+                        'OR',
+                        ['employee_dep_id' => $userDep],
+                        ['employee_executive_id' => ArrayHelper::getColumn($depModel, 'employee_executive_id')]
+                    ])->all();
+                // logic mode A เดิม
+            }
         }
 
-
-
-        if ($mode == 'A') {//กรณีทุกหน่วยงาน
-            $excutiveMan = [];
-            $depModel = ExecutiveHasCdepartment::find()->where([])->all(); //เพิ่มรายชื่อผู้บริหารที่มีตำแหน่งในการกำกับดูแลในฝ่าย แม้ว่าจะไม่ได้อยู่ในฝ่ายนั้นๆ
-            $headModel = EmployeePositionHead::find()->where(['OR', ['employee_dep_id' => $userDep], ['employee_executive_id' => ArrayHelper::getColumn($depModel, 'employee_executive_id')]])->all(); //เพิ่มรายชื่อผู้บริหารที่มีตำแหน่งในการกำกับดูแลในฝ่าย แม้ว่าจะไม่ได้อยู่ในฝ่ายนั้นๆ
-            //$model->where(['employee_dep_id' => $userDep]);
-            //$model->orWhere(['IN', 'employee_id', ArrayHelper::getColumn($headModel, 'employee_id')]);
-        }
         $model->joinWith(['position', 'dep']);
         $model->orderBy(['employee_dep.employee_dep_sort' => SORT_ASC, 'employee_position_name' => SORT_DESC]);
-        //$model->orderBy(['employee_fullname' => SORT_ASC]);
         $model->limit(100);
-        $modelArray = $model->All();
+
+        $modelArray = $model->all();
         $data = [];
 
         foreach ($modelArray as $value) {
             $head = $value->getHead();
-            $data[] = ['id' => $value->employee_id, 'text' => $value->employee_fullname, 'dep' => @$value->dep->employee_dep_label, 'position' => @$value->position->employee_position_name, 'excutive' => $value->getHead(), 'sort' => (isset($head[0]['level']) && (($head[0]['level']) > -1) ? @$head[0]['level'] : 99)];
+            $data[] = [
+                'id' => $value->employee_id,
+                'text' => $value->employee_fullname,
+                'dep' => @$value->dep->employee_dep_label,
+                'position' => @$value->position->employee_position_name,
+                'excutive' => $value->getHead(),
+                'sort' => (isset($head[0]['level']) && (($head[0]['level']) > -1) ? @$head[0]['level'] : 99)
+            ];
         }
 
         usort($data, function ($item1, $item2) {
-            if ($item1['sort'] == $item2['sort'])
-                return 0;
+            if ($item1['sort'] == $item2['sort']) return 0;
             return $item1['sort'] < $item2['sort'] ? -1 : 1;
         });
 
         $out['results'] = $data;
         if ($id > 0) {
-            $out['results'] = ['id' => $id, 'text' => Employee::find($id)->employee_fullname];
+            $out['results'] = ['id' => $id, 'text' => Employee::findOne($id)->employee_fullname];
         }
         return $out;
     }
