@@ -173,15 +173,14 @@ JS;
                 'ajax' => [
                     //'url' => Url::to(['paperless/emplist']),
                     'url' => new JsExpression('function(){
-
-                                                                            if("' . $stepUp . '" == "1"){
-                                                                                return "' . Url::to(['paperless/emplist2']) . '";
-                                                                            }else{
-                                                                                return "' . Url::to(['paperless/emplist']) . '";
-                                                                            }
-                                                                            }'),
+                        if("' . $stepUp . '" == "1"){
+                            return "' . Url::to(['paperless/emplist2']) . '";
+                        }else{
+                            return "' . Url::to(['paperless/emplist']) . '";
+                        }
+                    }'),
                     'dataType' => 'json',
-                    'data' => new JsExpression('function(params) {return {q:params.term,mode:"D",ac:"1"}; }')
+                    'data' => new JsExpression('function(params) {return {q:params.term,mode:"D",ac:"1",dep_group_mode:"1" }; }')
                 ],
                 'escapeMarkup' => new JsExpression("function(m) { return m; }"),
                 'templateResult' => new JsExpression('formatRepo'),

@@ -31,9 +31,11 @@ use yii\db\Expression;
 use app\modules\office\models\PaperlessView;
 use kartik\form\ActiveForm;
 
-class PaperlessController extends Controller {
+class PaperlessController extends Controller
+{
 
-    public function actionIndex($view = '') {
+    public function actionIndex($view = '')
+    {
         $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
         $profile = @ExtProfile::find()->where(['IN', 'cid', [$emp->employee_cid]])->one();
         $role = Yii::$app->authManager->getRolesByUser($profile->user_id);
@@ -53,14 +55,17 @@ class PaperlessController extends Controller {
 
         if (isset($params['mode']) && $params['mode'] == 'owner') {
             if (strpos($sqlWhere, 'ExecutiveUser') !== false) {
-                $query->andWhere(['AND',
+                $query->andWhere([
+                    'AND',
                     ['process_receiver' => $emp->employee_id],
                 ]);
-                $query->andWhere(['AND',
+                $query->andWhere([
+                    'AND',
                     new Expression(" paperless_direct < 1 "),
                 ]);
             } else {
-                $query->andWhere(['OR',
+                $query->andWhere([
+                    'OR',
                     ['p.process_receiver' => $emp->employee_id],
                     new Expression(" s.paperless_status_auth IN ({$sqlWhere})"),
                 ]);
@@ -68,22 +73,24 @@ class PaperlessController extends Controller {
         } else {
 
             if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin')) {
-
             } else {
 
                 if (strpos($sqlWhere, 'ExecutiveUser') !== false) {
                     //รายการในบันทึกข้อความให้แสดงเฉพาะที่ผู้บริหารเคยเซนต์
-                    $query->andWhere(['AND',
+                    $query->andWhere([
+                        'AND',
                         ['p2.process_receiver' => $emp->employee_id],
                     ]);
                 } else {
-                    $involved->where(['OR',
+                    $involved->where([
+                        'OR',
                         ['employee_id' => $emp->employee_id],
                         ['process_receiver' => $emp->employee_id],
                         ['process_acknowledge_staff' => $emp->employee_id],
                     ]);
                     $arrInvolved = $involved->groupBy(['paperless_id'])->all();
-                    $query->andWhere(['OR',
+                    $query->andWhere([
+                        'OR',
                         ['employee_owner_id' => $emp->employee_id],
                         ['paperless.employee_id' => $emp->employee_id],
                         new Expression("  s.paperless_status_auth IN ({$sqlWhere})"),
@@ -105,50 +112,58 @@ class PaperlessController extends Controller {
 
         if (!empty($view)) {
             if ($view == 'paper') {
-                $query->andWhere(['AND',
+                $query->andWhere([
+                    'AND',
                     new Expression(" paperless_direct < 1 "),
                 ]);
             }
 
             if ($view == 'wait') {
-                $query->andWhere(['AND',
+                $query->andWhere([
+                    'AND',
                     new Expression(" p.process_acknowledge_staff IS NULL"),
                     new Expression(" paperless_direct > 0 "),
                     new Expression(" paperless.paperless_status_id NOT IN ('FF') "),
                 ]);
             }
             if ($view == 'process') {
-                $query->andWhere(['AND',
+                $query->andWhere([
+                    'AND',
                     new Expression(" p.process_acknowledge_staff  IS NOT NULL "),
                 ]);
             }
         }
 
 
-        if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('ManagerAdmin')) {//สำหรับ Admin ในการติดตามเอกสาร
+        if (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('ManagerAdmin')) { //สำหรับ Admin ในการติดตามเอกสาร
             $query->filterWhere(['=', 'employee_dep_id', @$params['dep']]);
             //$query->andWhere(['=', 'employee_dep_id', $emp->employee_dep_id]);
         } else {
             //$query->andWhere(['=', 'employee_dep_id', @$params['dep']]);
         }
-        $query->andFilterWhere(['OR',
+        $query->andFilterWhere([
+            'OR',
             ['like', 'paperless_topic', @$params['search']],
             ['like', 'paperless_detail', @$params['search']],
             ['like', 'paperless_number', @$params['search']],
         ]);
 
-        $query->andFilterWhere(['AND',
+        $query->andFilterWhere([
+            'AND',
             ['like', 'p.paperless_status_id', @$params['statusid']],
         ]);
-		
-		//Limit หนังสือ จะแสดงผล 365 วัน
-        $query->andWhere(['AND',
-            ['BETWEEN', 'paperless.paperless_date',
+
+        //Limit หนังสือ จะแสดงผล 365 วัน
+        $query->andWhere([
+            'AND',
+            [
+                'BETWEEN',
+                'paperless.paperless_date',
                 date('Y-m-d', strtotime('-365 days')), // วันที่เริ่มต้น (365 วันที่แล้ว)
                 date('Y-m-d') // วันที่สิ้นสุด (วันนี้)
             ],
         ]);
-		
+
 
         $dataProviderDash = new ActiveDataProvider([
             'query' => $query,
@@ -176,26 +191,27 @@ class PaperlessController extends Controller {
 
         if (isset($params['mode']) && $params['mode'] == 'owner') {
             return $this->renderAjax('_grid', [
-                        'dataProvider' => $dataProvider,
-                        'data' => $Dash,
+                'dataProvider' => $dataProvider,
+                'data' => $Dash,
             ]);
         } else {
 
             if (!empty($view)) {
                 return $this->renderAjax('_gridViewCenter', [
-                            'dataProvider' => $dataProvider,
-                            'data' => $Dash,
+                    'dataProvider' => $dataProvider,
+                    'data' => $Dash,
                 ]);
             }
 
             return $this->render('index', [
-                        'dataProvider' => $dataProvider,
-                        'data' => $Dash,
+                'dataProvider' => $dataProvider,
+                'data' => $Dash,
             ]);
         }
     }
 
-    public function actionCreate() {
+    public function actionCreate()
+    {
         $model = new Paperless();
         /*         * ***ออกเลขเพื่อใช้อ้างอิง********************** */
         $now = \DateTime::createFromFormat('U.u', microtime(true));
@@ -222,13 +238,14 @@ class PaperlessController extends Controller {
             //$model->loadDefaultValues();
         }
         return $this->renderAjax('_form', [
-                    'model' => $model,
-                    'initialPreview' => $initialPreview,
-                    'initialPreviewConfig' => $initialPreviewConfig
+            'model' => $model,
+            'initialPreview' => $initialPreview,
+            'initialPreviewConfig' => $initialPreviewConfig
         ]);
     }
 
-    public function actionUpdate($id) {
+    public function actionUpdate($id)
+    {
 
         $query = PaperlessProcessList::find()->where(['paperless_id' => $id]);
         $dataProvider = new ActiveDataProvider([
@@ -267,18 +284,20 @@ class PaperlessController extends Controller {
         }
 
         return $this->renderAjax('_form', [
-                    'model' => $model,
-                    'dataProvider' => $dataProvider,
-                    'initialPreview' => $initialPreview,
-                    'initialPreviewConfig' => $initialPreviewConfig
+            'model' => $model,
+            'dataProvider' => $dataProvider,
+            'initialPreview' => $initialPreview,
+            'initialPreviewConfig' => $initialPreviewConfig
         ]);
     }
 
-    public function actionUploadAjax() {
+    public function actionUploadAjax()
+    {
         $this->Uploads(true);
     }
 
-    private function CreateDir($folderName) {
+    private function CreateDir($folderName)
+    {
         if ($folderName != NULL) {
             $basePath = Paperless::getUploadPath();
             if (BaseFileHelper::createDirectory($basePath . $folderName, 0777)) {
@@ -288,7 +307,8 @@ class PaperlessController extends Controller {
         return;
     }
 
-    private function Uploads($isAjax = false, $ref = '') {
+    private function Uploads($isAjax = false, $ref = '')
+    {
 
         if (Yii::$app->request->isPost) {
             $images = UploadedFile::getInstancesByName('upload_ajax');
@@ -308,14 +328,14 @@ class PaperlessController extends Controller {
                     $realFileName = md5($file->baseName . time()) . '.' . $file->extension;
                     $savePath = Paperless::UPLOAD_FOLDER . '/' . $ref . '/' . $realFileName;
                     if ($file->saveAs($savePath)) {
-//------------------------------------------------------
+                        //------------------------------------------------------
                         //$image = \Yii::$app->image->load($savePath);
                         //$image->resize(1000);
                         //$image->save($savePath);
-//------------------------------------------------------
-#if ($this->isImage(Url::base(true) . '/' . $savePath)) {
+                        //------------------------------------------------------
+                        #if ($this->isImage(Url::base(true) . '/' . $savePath)) {
                         //$this->createThumbnail($ref, $realFileName);
-#}
+                        #}
                         $model = new Uploads;
                         $model->ref = $ref;
                         $model->file_name = $fileName;
@@ -329,12 +349,11 @@ class PaperlessController extends Controller {
 
                         if ($isAjax === true) {
                             echo json_encode(['success'
-                                => 'true']);
+                            => 'true']);
                         }
                     } else {
                         if ($isAjax === true) {
-                            echo json_encode
-                                    (['success' => 'false', 'eror' => $file->error]);
+                            echo json_encode(['success' => 'false', 'eror' => $file->error]);
                         }
                     }
                 }
@@ -342,9 +361,11 @@ class PaperlessController extends Controller {
         }
     }
 
-    private function getInitialPreview($ref) {
+    private function getInitialPreview($ref)
+    {
         $datas = Uploads::find()->where(['ref' => $ref])->orderBy([
-                    'create_date' => SORT_ASC])->all();
+            'create_date' => SORT_ASC
+        ])->all();
         $initialPreview = [];
         $initialPreviewConfig = [];
         foreach ($datas as $key => $value) {
@@ -368,11 +389,13 @@ class PaperlessController extends Controller {
         return [$initialPreview, $initialPreviewConfig];
     }
 
-    public function isImage($filePath) {
+    public function isImage($filePath)
+    {
         return @is_array(getimagesize($filePath)) ? true : false;
     }
 
-    private function getTemplatePreview(Uploads $model) {
+    private function getTemplatePreview(Uploads $model)
+    {
         //$filePath = Paperless::getUploadUrl() . $model->ref . '/thumbnail/' . $model->real_filename;
         $filePath = Paperless::getUploadUrl() . $model->ref . '/' . $model->real_filename;
         $isImage = $this->isImage($filePath);
@@ -391,7 +414,8 @@ class PaperlessController extends Controller {
         return $file;
     }
 
-    private function createThumbnail($folderName, $fileName, $width = 500) {
+    private function createThumbnail($folderName, $fileName, $width = 500)
+    {
         $uploadPath = Paperless::getUploadPath() . '/' . $folderName . '/';
         $file = $uploadPath . $fileName;
         $image = \Yii::$app->image->load($file);
@@ -400,7 +424,8 @@ class PaperlessController extends Controller {
         return;
     }
 
-    public function actionDeletefileAjax() {
+    public function actionDeletefileAjax()
+    {
         $model = Uploads::findOne(Yii::$app->request->post('key'));
         if ($model !== NULL) {
             $filename = Paperless::getUploadPath() . $model->ref . '/' . $model->real_filename;
@@ -409,7 +434,7 @@ class PaperlessController extends Controller {
                 @unlink($filename);
                 @unlink($thumbnail);
                 echo json_encode(['success'
-                    => true]);
+                => true]);
             } else {
                 echo json_encode(['success' => false]);
             }
@@ -418,13 +443,15 @@ class PaperlessController extends Controller {
         }
     }
 
-    public function actionView3($id = null) {
+    public function actionView3($id = null)
+    {
         //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         $model = Paperless::findOne($id);
         return $this->renderPartial('example', ['model' => @$model, 'data' => @$data]);
     }
 
-    public function actionView($id = null) {
+    public function actionView($id = null)
+    {
         if (Device::$isPhone || Device::$isTablet) {
             return $this->renderAjax('view', ['id' => $id]);
         } else {
@@ -432,20 +459,21 @@ class PaperlessController extends Controller {
         }
     }
 
-    public function actionTcpdf($id = null) {
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    public function actionTcpdf($id = null)
+    {
+        //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         $model = Paperless::findOne($id);
         $modelProcess = PaperlessProcessList::find()
-                ->where(['paperless_id' => $model->paperless_id])
-                ->andWhere(['IN', 'paperless_status_id', ['F15', 'F16', 'F18', 'F19']])
-                ->orderBy(['processlist_id' => SORT_DESC])
-                ->limit(4)
-                //->asArray()
-                ->all();
-// create new PDF document
+            ->where(['paperless_id' => $model->paperless_id])
+            ->andWhere(['IN', 'paperless_status_id', ['F15', 'F16', 'F18', 'F19']])
+            ->orderBy(['processlist_id' => SORT_DESC])
+            ->limit(4)
+            //->asArray()
+            ->all();
+        // create new PDF document
         $pdf = TcPDFMod::TcPDFModInit();
 
-// set document information
+        // set document information
         $pdf->setCreator('HMP:Hospital Management Platform');
         $pdf->setAuthor('Sila Klanklaeo');
         $pdf->setTitle($model->paperless_topic);
@@ -462,7 +490,7 @@ class PaperlessController extends Controller {
             "emailAddress" => "sila.k@spo.moph.go.th",
         ];
 
-// Generate a new private (and public) key pair
+        // Generate a new private (and public) key pair
         $privkey = openssl_pkey_new(array(
             "digest_alg" => "sha256",
             "private_key_bits" => 2048,
@@ -470,16 +498,16 @@ class PaperlessController extends Controller {
         ));
         $privkeypass = 'QW2267er!!';
 
-// Generate a certificate signing request
+        // Generate a certificate signing request
         $csr = openssl_csr_new($dn, $privkey);
-// Generate a self-signed cert, valid for 365 days
+        // Generate a self-signed cert, valid for 365 days
         $x509 = openssl_csr_sign($csr, null, $privkey, $days = 365);
-// Save your private key, CSR and self-signed cert for later use
+        // Save your private key, CSR and self-signed cert for later use
         openssl_csr_export($csr, $csrout);
         openssl_x509_export($x509, $certout);
         openssl_pkey_export($privkey, $pkeyout, $privkeypass);
 
-// set additional information
+        // set additional information
         $info = array(
             'Name' => 'Sila Klanklaeo',
             'Location' => 'Office',
@@ -487,9 +515,9 @@ class PaperlessController extends Controller {
             'ContactInfo' => 'https://somdej17.moph.go.th',
         );
 
-// set text shadow effect
-//$pdf->setTextShadow(array('enabled' => true, 'depth_w' => 0.2, 'depth_h' => 0.2, 'color' => array(196, 196, 196), 'opacity' => 1, 'blend_mode' => 'Normal'));
-// Print text using writeHTMLCell()
+        // set text shadow effect
+        //$pdf->setTextShadow(array('enabled' => true, 'depth_w' => 0.2, 'depth_h' => 0.2, 'color' => array(196, 196, 196), 'opacity' => 1, 'blend_mode' => 'Normal'));
+        // Print text using writeHTMLCell()
         @$pdf->writeHTML($this->renderPartial('example', ['model' => @$model, 'data' => @$data]), true, false, true, false, '');
 
         //@$pdf->writeHTML($this->renderPartial('example', ['model' => @$model, 'data' => @$data]), 1, 0, 1, true, 'J', true);
@@ -513,7 +541,7 @@ class PaperlessController extends Controller {
             'bgcolor' => false
         );
 
-// QRCODE,L : QR-CODE Low error correction
+        // QRCODE,L : QR-CODE Low error correction
         if (!empty($model->paperless_uuid))
             $pdf->write2DBarcode($model->paperless_uuid, 'QRCODE,H', 170, 5, 50, 50, $style, 'N');
         if (!empty($model)) {
@@ -542,7 +570,7 @@ class PaperlessController extends Controller {
             }
         }
 
-// set document signature
+        // set document signature
         $pdf->setSignature($certout, $pkeyout, $privkeypass, '', 2, $info, 'A');
         $pdf->Output($model->paperless_topic . '.pdf', 'I');
         exit;
@@ -606,32 +634,60 @@ class PaperlessController extends Controller {
       }
      */
 
-    public function actionEmplist($q = null, $id = null, $mode = '', $dep = '', $ac = '') {
+    public function actionEmplist($q = null, $id = null, $mode = '', $dep = '', $ac = '', $dep_group_mode = 0)
+    {
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         $out = ['results' => ['id' => '', 'text' => '']];
         $userInfo = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
         $userDep = (!empty($dep) ? $dep : $userInfo->employee_dep_id);
         $depLink = (!empty($dep) ? Ccomponent::DepParent($userDep) : $userInfo->dep->employee_dep_parent);
         $model = Employee::find()->where(['employee_status' => 1]);
-        //if (!is_null($q))
         $model->andFilterWhere(['like', 'employee_fullname', $q]);
 
         if ($ac == '1' && strlen($q) > 3) {
             $mode = 'A';
         }
 
-        $allowedDepIds = \app\modules\hr\models\EmployeeDep::find()
-            ->select('employee_dep_id')
-            ->where(['employee_dep_label' => ['กลุ่มงานสุขภาพดิจิทัล', 'กลุ่มงานเทคโนโลยีสารสนเทศ']])
-            ->column();
+        // --- ถ้า dep_group_mode=1 ใช้ logic 2 กลุ่มงาน ---
+        if ($dep_group_mode == 1) {
+            $allowedDepIds = \app\modules\hr\models\EmployeeDep::find()
+                ->select('employee_dep_id')
+                ->where(['employee_dep_label' => ['กลุ่มงานสุขภาพดิจิทัล', 'กลุ่มงานเทคโนโลยีสารสนเทศ']])
+                ->column();
 
-        $userInAllowedGroups = in_array($userInfo->employee_dep_id, $allowedDepIds);
+            $userInAllowedGroups = in_array($userInfo->employee_dep_id, $allowedDepIds);
 
-        if ($userInAllowedGroups) {
-            // ถ้า user อยู่ในสองกลุ่มนี้ → มองเห็นทั้งสองกลุ่ม
-            $model->andWhere(['employee.employee_dep_id' => $allowedDepIds]);
+            if ($userInAllowedGroups) {
+                $model->andWhere(['employee.employee_dep_id' => $allowedDepIds]);
+            } else {
+                // user นอกสองกลุ่ม → เหมือนเดิม
+                if ($mode == 'D') {
+                    $depModel = ExecutiveHasCdepartment::find()->where(['employee_dep_id' => $userDep])->all();
+                    $headModel = EmployeePositionHead::find()
+                        ->where([
+                            'OR',
+                            ['employee_dep_id' => $userDep],
+                            ['employee_executive_id' => ArrayHelper::getColumn($depModel, 'employee_executive_id')]
+                        ])->all();
+                    $depLinkModel = Employee::find()->where(['employee_dep_id' => $depLink])->all();
+
+                    $model->andWhere([
+                        'OR',
+                        ['employee.employee_dep_id' => $userDep],
+                        ['IN', 'employee_id', ArrayHelper::getColumn($headModel, 'employee_id')],
+                        ['IN', 'employee_id', ArrayHelper::getColumn($depLinkModel, 'employee_id')],
+                    ]);
+                } else if ($mode == 'A') {
+                    $depModel = ExecutiveHasCdepartment::find()->all();
+                    $headModel = EmployeePositionHead::find()
+                        ->where([
+                            'OR',
+                            ['employee_dep_id' => $userDep],
+                            ['employee_executive_id' => ArrayHelper::getColumn($depModel, 'employee_executive_id')]
+                        ])->all();
+                }
+            }
         } else {
-            // logic เดิมสำหรับ user กลุ่มอื่น
             if ($mode == 'D') {
                 $depModel = ExecutiveHasCdepartment::find()->where(['employee_dep_id' => $userDep])->all();
                 $headModel = EmployeePositionHead::find()
@@ -656,7 +712,6 @@ class PaperlessController extends Controller {
                         ['employee_dep_id' => $userDep],
                         ['employee_executive_id' => ArrayHelper::getColumn($depModel, 'employee_executive_id')]
                     ])->all();
-                // logic mode A เดิม
             }
         }
 
@@ -685,20 +740,24 @@ class PaperlessController extends Controller {
         });
 
         $out['results'] = $data;
+
         if ($id > 0) {
             $out['results'] = ['id' => $id, 'text' => Employee::findOne($id)->employee_fullname];
         }
+
         return $out;
     }
 
-    public function actionEmplist2($q = null, $id = null, $mode = '') {//สำหรับผู้บริหาร
-        \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+    public function actionEmplist2($q = null, $id = null, $mode = '')
+    { //สำหรับผู้บริหาร
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         $out = ['results' => ['id' => '', 'text' => '']];
         $userDep = Ccomponent::Emp(Yii::$app->user->identity->profile->cid)->employee_dep_id;
         $model = Employee::find()->where(['employee_status' => 1]);
         if (!is_null($q))
             $model->andWhere(['like', 'employee_fullname', $q])
-                    ->orWhere(['like', 'employee_cid', $q]);
+                ->orWhere(['like', 'employee_cid', $q]);
         /*
           if ($mode == 'D') {//กรณีอยู่หน่วยงานเดียวกัน
           $excutiveMan = [];
@@ -736,10 +795,10 @@ class PaperlessController extends Controller {
                 return 0;
             return $item1['sort'] < $item2['sort'] ? -1 : 1;
         });
-//        echo '<pre>';
-//        print_r($data);
-//        echo '</pre>';
-//        exit;
+        //        echo '<pre>';
+        //        print_r($data);
+        //        echo '</pre>';
+        //        exit;
 
         $out['results'] = $data;
         if ($id > 0) {
@@ -748,17 +807,18 @@ class PaperlessController extends Controller {
         return $out;
     }
 
-    public function actionDeplist($q = null, $id = null) {
-        \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
+    public function actionDeplist($q = null, $id = null)
+    {
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         $out = ['results' => ['id' => '', 'text' => '']];
         //if (!is_null($q)) {
         $query = new \yii\db\Query;
         $query->select(['employee_dep_id as id', "CONCAT(employee_dep_label) AS text"])
-                ->from('employee_dep');
+            ->from('employee_dep');
         if (!is_null($q))
             $query->where(['like', 'employee_dep_label', $q])
-                    //->andWhere(['employee_dep_status' => 1])
-                    ->andWhere(['employee_dep_status' => 1]);
+                //->andWhere(['employee_dep_status' => 1])
+                ->andWhere(['employee_dep_status' => 1]);
         $command = $query->createCommand();
         $data = $command->queryAll();
         $out['results'] = array_values($data);
@@ -769,15 +829,14 @@ class PaperlessController extends Controller {
         return $out;
     }
 
-    public function actionTest() {
+    public function actionTest() {}
 
-    }
-
-    public function actionCreateprocess() {
+    public function actionCreateprocess()
+    {
         $message = '';
         $status = 'error';
-        $param = \Yii ::$app->request->post();
-        \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $param = \Yii::$app->request->post();
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         if (isset($param['id'])) {
             $model = new PaperlessProcessList();
             $now = \DateTime::createFromFormat('U.u', microtime(true));
@@ -892,10 +951,10 @@ class PaperlessController extends Controller {
                 //-------------------------------------------------------------------------------------------------------
             } elseif (isset($param['frmStatus']) && $param['frmStatus'] == 'F17') { //ส่งงานเลขา
                 $model->paperless_status_id = 'F17'; //รอพิจารณา
-//                if (empty($param['comment'])) {
-//                    $message = 'ไม่พบการระบุความเห็น กรุณาระบุเหตุผลด้วยค่ะ';
-//                    return ['status' => 'error', 'message' => $message];
-//                }
+                //                if (empty($param['comment'])) {
+                //                    $message = 'ไม่พบการระบุความเห็น กรุณาระบุเหตุผลด้วยค่ะ';
+                //                    return ['status' => 'error', 'message' => $message];
+                //                }
                 //--------แจ้งเตือนการให้แก้ไขเอกสาร-------------------------------------------------------------
                 $auth = Ccomponent::getTokenUser('SecretaryAdmin'); //ตามสิทธิ
                 foreach ($auth as $emp) {
@@ -911,10 +970,10 @@ class PaperlessController extends Controller {
                     return ['status' => 'error', 'message' => $message];
                 }
                 $model->process_receiver = $param['receiver']; //ผู้รับ
-//                if (empty($param['comment'])) {
-//                    $message = 'ไม่พบการระบุความเห็น กรุณาระบุเหตุผลด้วยค่ะ';
-//                    return ['status' => 'error', 'message' => $message];
-//                }
+                //                if (empty($param['comment'])) {
+                //                    $message = 'ไม่พบการระบุความเห็น กรุณาระบุเหตุผลด้วยค่ะ';
+                //                    return ['status' => 'error', 'message' => $message];
+                //                }
                 //--------แจ้งเตือนการให้แก้ไขเอกสาร-------------------------------------------------------------
                 $auth = Employee::find()->where(['IN', 'employee_id', [$model->process_receiver]])->all(); //เป็นรายบุคคล
                 //$auth = Ccomponent::getTokenUser('ManagerAdmin'); //ตามสิทธิ
@@ -931,10 +990,10 @@ class PaperlessController extends Controller {
                     return ['status' => 'error', 'message' => $message];
                 }
                 $model->process_receiver = $param['receiver']; //ผู้รับ
-//                if (empty($param['comment'])) {
-//                    $message = 'ไม่พบการระบุความเห็น กรุณาระบุเหตุผลด้วยค่ะ';
-//                    return ['status' => 'error', 'message' => $message];
-//                }
+                //                if (empty($param['comment'])) {
+                //                    $message = 'ไม่พบการระบุความเห็น กรุณาระบุเหตุผลด้วยค่ะ';
+                //                    return ['status' => 'error', 'message' => $message];
+                //                }
                 //--------แจ้งเตือนการให้แก้ไขเอกสาร-------------------------------------------------------------
                 $auth = Employee::find()->where(['IN', 'employee_id', [$model->process_receiver]])->all(); //เป็นรายบุคคล
                 //$auth = Ccomponent::getTokenUser('ManagerAdmin'); //ตามสิทธิ
@@ -994,13 +1053,13 @@ class PaperlessController extends Controller {
                 $papaer = Paperless::findOne(['paperless_id' => $param['id']]);
                 if (in_array($param['frmStatus'], ['F02']))
                     $papaer->paperless_direct = 1;
-                if (in_array($param['frmStatus'], ['F14']))//เสนอหนังสือผ่านงานการเงิน(Finance)
+                if (in_array($param['frmStatus'], ['F14'])) //เสนอหนังสือผ่านงานการเงิน(Finance)
                     $papaer->paperless_direct = 2;
-                if (in_array($param['frmStatus'], ['F13']))//เสนอหนังสือผ่านงานบุคลากร(HR)
+                if (in_array($param['frmStatus'], ['F13'])) //เสนอหนังสือผ่านงานบุคลากร(HR)
                     $papaer->paperless_direct = 3;
-                if (in_array($param['frmStatus'], ['F11']))//เสนอหนังสือผ่านงานบัญชี
+                if (in_array($param['frmStatus'], ['F11'])) //เสนอหนังสือผ่านงานบัญชี
                     $papaer->paperless_direct = 4;
-                if (in_array($param['frmStatus'], ['F12']))//เสนอหนังสือผ่านงานพัสดุ
+                if (in_array($param['frmStatus'], ['F12'])) //เสนอหนังสือผ่านงานพัสดุ
                     $papaer->paperless_direct = 5;
 
                 $papaer->paperless_status_id = $model->paperless_status_id;
@@ -1039,10 +1098,11 @@ class PaperlessController extends Controller {
         return ['status' => $status, 'message' => $message];
     }
 
-///บันทึกข้อมูลการรับทราบหนังสือ ที่มีผู้เสนอมาถึง
-    public function actionAcknowledge($id) {
-        \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
-        $param = \Yii ::$app->request->post();
+    ///บันทึกข้อมูลการรับทราบหนังสือ ที่มีผู้เสนอมาถึง
+    public function actionAcknowledge($id)
+    {
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $param = \Yii::$app->request->post();
         $model = PaperlessProcessList::find()->where(['processlist_id' => $id, 'process_receiver' => md5($cid)])->one();
         if (empty($model->process_receiver))
             $model->process_acknowledge_staff = Ccomponent::Emp(Yii::$app->user->identity->profile->cid)->employee_id;
@@ -1056,8 +1116,9 @@ class PaperlessController extends Controller {
         return ['status' => $status, 'message' => $message];
     }
 
-//จัดการการเสนอหนังสือไปยังระบบต่างๆ
-    public function actionOperate($id, $ac = '') {
+    //จัดการการเสนอหนังสือไปยังระบบต่างๆ
+    public function actionOperate($id, $ac = '')
+    {
         $emp = Ccomponent::Emp(Yii::$app->user->identity->profile->cid);
         if (strlen($id) == 17) {
             //รับค่าจาก Scanner
@@ -1097,34 +1158,34 @@ class PaperlessController extends Controller {
             ],
         ]);
 
-        if ($dataProvider->getTotalCount() < 1) {//ตรวจสอบเอกสารให้ดำเนินการเสนอก่อนยืนพิจารณา
-            \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        if ($dataProvider->getTotalCount() < 1) { //ตรวจสอบเอกสารให้ดำเนินการเสนอก่อนยืนพิจารณา
+            \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
             return ['status' => 'false', 'message' => 'เอกสารนี้ยังไม่ดำเนินการเสนอเข้าสู่ระบบ กรุณาเสนอหนังสือฉบับนี้ก่อนค่ะ'];
         }
         //----------------------------------------------------------------------------
-//->employee_id
+        //->employee_id
         $modelProcess = PaperlessProcessList::find()
-                ->where(['paperless_id' => $model->paperless_id])
-                ->orderBy(['processlist_id' => SORT_DESC])
-                ->one();
+            ->where(['paperless_id' => $model->paperless_id])
+            ->orderBy(['processlist_id' => SORT_DESC])
+            ->one();
         $canVisible = 0; //กำหนดการแสดงผลการดำเนินการ
         if ($modelProcess->process_receiver == $emp->employee_id) { //ให้ผู้ถูกเสนอหนังสือสามารถดำเนินการเอกสารได้
             $canVisible = 1;
         }
 
         $profile = @ExtProfile::find()->where(['IN', 'cid', [$emp->employee_cid]])->one();
-        if (!empty($modelProcess->status->paperless_status_auth)) {//ให้ผู้รับผิดชอบหนังสือสามารถดำเนินการเอกสารได้
+        if (!empty($modelProcess->status->paperless_status_auth)) { //ให้ผู้รับผิดชอบหนังสือสามารถดำเนินการเอกสารได้
             $role = Yii::$app->authManager->getRolesByUser($profile->user_id);
             if (in_array($modelProcess->status->paperless_status_auth, array_keys($role))) {
                 $canVisible = 1;
             }
         }
 
-        if ((\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin'))) {//จะสามารถดูเอกสารที่ไม่เกี่ยวข้องได้ถ้าเป็นเอกสารที่ผ่านเพื่อดำเนินการต่อ
+        if ((\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin'))) { //จะสามารถดูเอกสารที่ไม่เกี่ยวข้องได้ถ้าเป็นเอกสารที่ผ่านเพื่อดำเนินการต่อ
             $canVisible = 1;
         }
 
-        if (!empty($model->paperless_direct) && $model->paperless_direct > 0 && (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin'))) {//งานเลขาจะสามารถดูเอกสารที่ไม่เกี่ยวข้องได้ถ้าเป็นเอกสารที่ผ่านเพื่อดำเนินการต่อ
+        if (!empty($model->paperless_direct) && $model->paperless_direct > 0 && (\Yii::$app->user->can('SuperAdmin') || \Yii::$app->user->can('OfficeAdmin') || \Yii::$app->user->can('SecretaryAdmin'))) { //งานเลขาจะสามารถดูเอกสารที่ไม่เกี่ยวข้องได้ถ้าเป็นเอกสารที่ผ่านเพื่อดำเนินการต่อ
             $canVisible = 1;
         }
 
@@ -1172,17 +1233,18 @@ class PaperlessController extends Controller {
         $status = PaperlessStatus::find()->where(['IN', 'paperless_status_id', $arrayStatus])->all();
 
         return $this->renderAjax('_form_operate', [
-                    'model' => $model,
-                    'status' => $status,
-                    'modelProcess' => $modelProcess,
-                    'dataProvider' => $dataProvider,
-                    'data' => $dataProvider->getModels(),
-                    'canVisible' => $canVisible,
-                    'header' => $header
+            'model' => $model,
+            'status' => $status,
+            'modelProcess' => $modelProcess,
+            'dataProvider' => $dataProvider,
+            'data' => $dataProvider->getModels(),
+            'canVisible' => $canVisible,
+            'header' => $header
         ]);
     }
 
-    public function genComment($model) {
+    public function genComment($model)
+    {
         //$model = PaperlessProcessList::find()->where(['processlist_id' => $id])->one();
         $message = $model->process_comment;
         $deps = \app\modules\hr\models\EmployeeDep::find()->where(['IN', 'employee_dep_id', explode(',', $model->process_deps)])->all();
@@ -1194,8 +1256,9 @@ class PaperlessController extends Controller {
         return $message;
     }
 
-    public function actionDelete() {
-        \Yii ::$app->response->format = \yii\web\Response::FORMAT_JSON;
+    public function actionDelete()
+    {
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         $id = \Yii::$app->request->post('id');
         $model = Paperless::findOne($id);
         if ($model && @in_array($model->paperless_status_id, ['F01'])) {
@@ -1220,5 +1283,4 @@ class PaperlessController extends Controller {
         }
         return ['status' => $status, 'message' => $message];
     }
-
 }
